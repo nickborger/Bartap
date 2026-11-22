@@ -1,0 +1,163 @@
+rules_version = '2';
+
+// Bar Tap Firestore security rules.
+// Paste into Firebase console > Firestore Database > Rules, then Publish.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function myProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Admins: users/{uid}.role == "admin". This role can ONLY be set in the
+    // Firebase console (see FIREBASE_SETUP.md); nobody can grant it in the app.
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && myProfile().get('role', 'user') == 'admin';
+    }
+
+    // True if the signed-in user is linked to this bar as its owner
+    // (admins link owners from the in-app Admin screen).
+    function ownsBar(barId) {
+      let profile = myProfile();
+      return profile.get('role', 'user') in ['owner', 'admin']
+        && barId in profile.get('ownedBarIds', []);
+    }
+
+    // Bar fields an owner may change on their own bar. Everything else
+    // (name, address, location, photo, weekly hours, features, isActive...)
+    // is admin-only.
+    function ownerEditableBarFields() {
+      return ['hoursToday', 'hoursTodaySetOn', 'coverCharge', 'currentDJsBand',
+              'crowdDensity', 'estimatedWaitMinutes', 'websiteUrl', 'phone',
+              'tagline', 'category', 'cameras', 'drinkSpecials', 'events',
+              'websiteVerification', 'activeFlashDeal', 'staff', 'auditLog',
+              'ownerReplies', 'updatedAt', 'updatedBy'];
+    }
+
+    function validBar(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 120
+        && data.address is string
+        && data.get('isActive', true) is bool;
+    }
+
+    function validScore(v) {
+      return v is int && v >= 1 && v <= 5;
+    }
+
+    // ---------------------------------------------------------------
+    // users/{uid}: each person reads and edits only their own profile.
+    // They can never change role, isPremium or ownedBarIds themselves.
+    // ---------------------------------------------------------------
+    match /users/{uid} {
+      // Admins can look people up (by email) to link them as bar owners.
+      allow read: if isSelf(uid) || isAdmin();
+
+      allow create: if isSelf(uid)
+        && request.resource.data.role == 'user'
+        && request.resource.data.isPremium == false
+        && request.resource.data.ownedBarIds is list
+        && request.resource.data.ownedBarIds.size() == 0;
+
+      allow update: if isSelf(uid)
+        && !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['role', 'isPremium', 'ownedBarIds', 'createdAt']);
+
+      // Admins link/unlink owners: they may change only role and ownedBarIds,
+      // role can only become 'user' or 'owner' (never 'admin'), and an
+      // existing admin's role can't be changed from the app.
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['role', 'ownedBarIds'])
+        && request.resource.data.ownedBarIds is list
+        && (
+          (resource.data.get('role', 'user') == 'admin' && request.resource.data.role == 'admin')
+          || (resource.data.get('role', 'user') != 'admin' && request.resource.data.role in ['user', 'owner'])
+        );
+
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // reviews/{reviewId}: anyone can read; signed-in users write only
+    // their own reviews.
+    // ---------------------------------------------------------------
+    match /reviews/{reviewId} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.barId is string
+        && request.resource.data.author is string
+        && request.resource.data.author.size() <= 80
+        && request.resource.data.comment is string
+        && request.resource.data.comment.size() > 0
+        && request.resource.data.comment.size() <= 2000
+        && validScore(request.resource.data.rating)
+        && validScore(request.resource.data.vibeScore)
+        && validScore(request.resource.data.valueScore)
+        && validScore(request.resource.data.musicScore)
+        && request.resource.data.helpfulCount == 0
+        && request.resource.data.createdAt == request.time;
+
+      allow update: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.barId == resource.data.barId
+        && validScore(request.resource.data.rating);
+
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // ---------------------------------------------------------------
+    // bars/{barId}: the bar listings. Anyone can read. Admins create,
+    // edit, hide and delete bars. A bar's owner can update only the
+    // live fields in ownerEditableBarFields() on their own bar.
+    // ---------------------------------------------------------------
+    match /bars/{barId} {
+      allow read: if true;
+
+      allow create: if isAdmin() && validBar(request.resource.data);
+      allow update: if isAdmin() && validBar(request.resource.data);
+      allow delete: if isAdmin();
+
+      allow update: if signedIn() && ownsBar(barId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(ownerEditableBarFields());
+    }
+
+    // ---------------------------------------------------------------
+    // config/{docId}: app settings (config/seed marks that the built-in
+    // bars were copied into Firestore). Anyone reads, admins write.
+    // ---------------------------------------------------------------
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------
+    // ownerRequests/{uid}: "link my venue" requests. Admins review them
+    // in the app's Admin screen (Owners tab).
+    // ---------------------------------------------------------------
+    match /ownerRequests/{uid} {
+      allow read: if isSelf(uid) || isAdmin();
+      allow create, update: if isSelf(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.status == 'pending';
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'approvedBarId', 'reviewedBy', 'reviewedAt'])
+        && request.resource.data.status in ['approved', 'declined'];
+      allow delete: if isAdmin();
+    }
+  }
+}
