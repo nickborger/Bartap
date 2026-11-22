@@ -1,0 +1,6 @@
+{
+  "name": "Bar Tap",
+  "description": "Live video feeds of partnered and subscribed bars in your geographical city. Tap In to real-time nightlife cams, crowd density, drink specials, and VIP deals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
