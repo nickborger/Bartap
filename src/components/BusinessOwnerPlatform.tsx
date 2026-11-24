@@ -71,6 +71,7 @@ import {
   WebsiteVerification,
 } from '../types.ts';
 import { LiveCameraCanvas } from './LiveCameraCanvas.tsx';
+import { CameraSetupPanel } from './CameraSetupPanel.tsx';
 import { ALL_EXCLUSIVE_DEALS } from '../data/exclusiveDeals.ts';
 
 interface BusinessOwnerPlatformProps {
@@ -902,7 +903,7 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
             }`}
           >
             <Video className="w-3.5 h-3.5" />
-            <span>Crowd Telemetry & Feeds ({onlineCamsCount}/{cameras.length})</span>
+            <span>Live Cameras ({(selectedBar.cameras || []).length})</span>
           </button>
 
           <button
@@ -1378,6 +1379,7 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
                     {/* Canvas Video Component */}
                     <div className="rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-950 shadow-inner relative">
                       <LiveCameraCanvas
+                        barId={selectedBar.id}
                         barName={selectedBar.name}
                         camera={activeCam || selectedBar.cameras[0]}
                         baseImage={selectedBar.image}
@@ -1941,181 +1943,21 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
             ========================================================================= */}
         {activeTab === 'telemetry' && (
           <div className="space-y-6">
-            {/* Master Control Bar */}
-            <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Video className="w-4 h-4 text-neutral-300" />
-                  <span>CCTV Feeds, AI Crowd Telemetry & Edge Nodes</span>
-                </h3>
-                <p className="text-xs text-neutral-400 mt-1 max-w-xl">
-                  Broadcast low-latency 1080p feeds to Bar Tap patrons while AI vision processors calibrate crowd density and entrance lines.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2.5">
-                <button
-                  onClick={handleMasterCameraToggle}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-                    onlineCamsCount > 0
-                      ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30 border border-red-500/40'
-                      : 'bg-copper text-ink hover:bg-tan border border-tan'
-                  }`}
-                >
-                  <Power className="w-4 h-4" />
-                  <span>{onlineCamsCount > 0 ? 'Disable All Cameras' : 'Turn Feeds Online'}</span>
-                </button>
-
-                <button
-                  onClick={() => setIsBlackoutActive(!isBlackoutActive)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
-                    isBlackoutActive
-                      ? 'bg-red-500 text-white font-black'
-                      : 'bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700'
-                  }`}
-                >
-                  {isBlackoutActive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  <span>{isBlackoutActive ? 'Blackout Active' : 'Private Mode'}</span>
-                </button>
-              </div>
+            <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-5">
+              <CameraSetupPanel bar={selectedBar} />
             </div>
-
-            {/* Camera Feeds List & Live Canvas Preview */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Left Column: Camera Angles */}
-              <div className="lg:col-span-7 space-y-4">
-                {cameras.map((cam) => {
-                  const isOnline = cam.status === 'LIVE';
-                  const isSelected = cam.id === activeCam.id;
-
-                  return (
-                    <div
-                      key={cam.id}
-                      className={`bg-neutral-900/90 border rounded-2xl p-4 transition ${
-                        isSelected
-                          ? 'border-tan ring-1 ring-copper/40'
-                          : 'border-neutral-800'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => setSelectedCamAngleId(cam.id)}
-                            className="p-2.5 rounded-xl bg-neutral-950 text-neutral-300 hover:text-white border border-neutral-800 transition cursor-pointer"
-                            title="Preview this feed"
-                          >
-                            <Video className="w-5 h-5" />
-                          </button>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-white">{cam.name}</span>
-                              <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-neutral-800 text-neutral-300">
-                                {cam.viewType}
-                              </span>
-                            </div>
-                            <div className="text-xs text-neutral-400 font-mono mt-0.5">
-                              {cam.locationLabel} · {cam.resolution} @ {cam.fps}fps
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Power Toggle Button */}
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
-                              isOnline
-                                ? 'bg-neutral-800 text-neutral-100 border border-neutral-700'
-                                : 'bg-neutral-800 text-neutral-400'
-                            }`}
-                          >
-                            {isOnline ? 'LIVE' : 'STANDBY'}
-                          </span>
-                          <button
-                            onClick={() => handleToggleCamera(cam.id)}
-                            className={`p-2 rounded-xl transition cursor-pointer ${
-                              isOnline
-                                ? 'bg-copper text-ink hover:bg-tan'
-                                : 'bg-neutral-800 text-neutral-400 hover:text-white'
-                            }`}
-                            title={isOnline ? 'Turn Camera Off' : 'Turn Camera On'}
-                          >
-                            <Power className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Technical specs */}
-                      <div className="mt-3.5 pt-3 border-t border-neutral-800/80 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
-                        <div>
-                          <span className="text-neutral-500 block">Ingest:</span>
-                          <span className="text-neutral-200">{cam.cloudRelay.ingestProtocol}</span>
-                        </div>
-                        <div>
-                          <span className="text-neutral-500 block">Hardware:</span>
-                          <span className="text-neutral-200 truncate block">
-                            {cam.cloudRelay.hardwareModel || 'Axis P3265'}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-neutral-500 block">Bitrate:</span>
-                          <span className="text-neutral-200">
-                            {cam.cloudRelay.bitrateKbps} Kbps
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-neutral-500 block">Latency:</span>
-                          <span className="text-neutral-200">{cam.cloudRelay.latencyMs}ms</span>
-                        </div>
-                      </div>
-
-                      {/* Ping Edge Node */}
-                      <div className="mt-3 flex items-center justify-between text-xs pt-2">
-                        <span className="text-[11px] font-mono text-neutral-400">
-                          {pingStatus[cam.id] ||
-                            `Local IP: ${cam.cloudRelay.localIp || '192.168.1.100'}`}
-                        </span>
-                        <button
-                          onClick={() => handlePingRelay(cam.id)}
-                          className="px-2.5 py-1 rounded-lg bg-neutral-950 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 text-[11px] font-mono flex items-center gap-1.5 transition cursor-pointer"
-                        >
-                          <RefreshCw className="w-3 h-3" />
-                          <span>Ping Edge Gateway</span>
-                        </button>
-                      </div>
+            {(selectedBar.cameras || []).length > 0 && (
+              <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-5 space-y-3">
+                <h3 className="text-sm font-bold text-white">What patrons see</h3>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {(selectedBar.cameras || []).map((cam) => (
+                    <div key={cam.id} className="rounded-2xl overflow-hidden border border-neutral-800">
+                      <LiveCameraCanvas barId={selectedBar.id} barName={selectedBar.name} camera={cam} baseImage={selectedBar.image} isCompact />
                     </div>
-                  );
-                })}
-              </div>
-
-              {/* Right Column: Live Video Canvas */}
-              <div className="lg:col-span-5 bg-neutral-900 border border-neutral-800 rounded-3xl p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-tan animate-pulse" />
-                    <span className="text-xs font-bold uppercase text-white font-mono">
-                      Active Canvas: {activeCam?.name}
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-neutral-300 font-mono">1080p Stream</span>
-                </div>
-
-                <div className="rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-950 shadow-inner">
-                  <LiveCameraCanvas
-                    barName={selectedBar.name}
-                    camera={activeCam || selectedBar.cameras[0]}
-                    baseImage={selectedBar.image}
-                  />
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-neutral-950/70 border border-neutral-800 text-[11px] text-neutral-400 leading-relaxed font-mono">
-                  <div className="text-neutral-300 font-semibold mb-1 flex items-center gap-1.5">
-                    <Shield className="w-3.5 h-3.5 text-neutral-200" />
-                    <span>Patron Privacy Safeguard Active</span>
-                  </div>
-                  Edge models process silhouettes and volume densities locally before distribution. No biometric data or facial identification is recorded.
+                  ))}
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 

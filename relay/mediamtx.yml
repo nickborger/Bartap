@@ -1,0 +1,108 @@
+###############################################################################
+# Bar Tap camera relay - MediaMTX settings for the Oracle server.
+# setup-relay.sh copies this to /etc/mediamtx/mediamtx.yml and fills in
+# __PUBLIC_HOST__ and __INTERNAL_KEY__. Only the lines that differ from MediaMTX's defaults are here.
+###############################################################################
+
+logLevel: info
+logDestinations: [stdout]
+
+# Every "may this camera stream?" and "may this person watch?" question goes to
+# the Bar Tap helper on this same machine. It checks the stream key and that
+# the camera is turned on, the bar is visible and signage is confirmed.
+authMethod: http
+authHTTPAddress: http://127.0.0.1:8081/auth
+# The control API only listens on this machine (127.0.0.1), so it skips the check.
+authHTTPExclude:
+  - action: api
+
+# Local control API, used only by the helper (never open to the internet).
+api: true
+apiAddress: 127.0.0.1:9997
+metrics: false
+pprof: false
+playback: false
+
+# ---------------------------------------------------------------- incoming
+# RTSP only on this machine (127.0.0.1): the audio stripper below uses it.
+# Port 8554 is never opened to the internet.
+rtsp: true
+rtspAddress: 127.0.0.1:8554
+rtspTransports: [tcp]
+rtspEncryption: "no"
+rtspAuthMethods: [basic]
+
+# RTMPS on TCP 1936 (encrypted): used by the Bar Tap camera kit that runs on a
+# computer or Raspberry Pi at the bar, and by streaming apps like Larix or OBS.
+# RTMP on TCP 1935 (not encrypted): only for older cameras/NVRs whose "RTMP"
+# push setting cannot do encryption. The certificate is the same free Let's
+# Encrypt one Caddy gets for the website (copied by bartap-relay-certs).
+rtmp: true
+rtmpEncryption: "optional"
+rtmpAddress: :1935
+rtmpsAddress: :1936
+rtmpServerKey: /etc/mediamtx/certs/server.key
+rtmpServerCert: /etc/mediamtx/certs/server.crt
+
+srt: false
+moq: false
+
+# ---------------------------------------------------------------- outgoing
+# HLS (fallback player). Only Caddy talks to it, at https://HOST/relay/hls/...
+hls: true
+hlsAddress: 127.0.0.1:8888
+hlsVariant: lowLatency
+hlsSegmentCount: 7
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
+hlsAllowOrigins: ["*"]
+hlsTrustedProxies: [127.0.0.1]
+
+# WebRTC (low-latency player, and the phone "Go live" page).
+# Signalling goes through Caddy at https://HOST/relay/rtc/...; the video itself
+# flows on UDP 8189 (or TCP 8189 for strict networks), both encrypted.
+webrtc: true
+webrtcAddress: 127.0.0.1:8889
+webrtcAllowOrigins: ["*"]
+webrtcTrustedProxies: [127.0.0.1]
+webrtcLocalUDPAddress: :8189
+webrtcLocalTCPAddress: :8189
+webrtcIPsFromInterfaces: false
+webrtcAdditionalHosts: [__PUBLIC_HOST__]
+webrtcICEServers2: []
+
+# ---------------------------------------------------------------- streams
+pathDefaults:
+  # A camera with a valid key may take over its own slot (for example after
+  # the bar's internet blips and the kit reconnects before the old connection
+  # has timed out).
+  overridePublisher: true
+  # Nothing is recorded. Video only passes through the server.
+  record: false
+  # Safety limit so one very popular stream can't use up the free bandwidth.
+  maxReaders: 60
+
+paths:
+  # NO SOUND, EVER (Florida needs everyone's consent to record conversations).
+  #
+  # Cameras, the kit and phones send to   in/<barId>/<cameraId>   (private:
+  # nobody outside this machine can watch it). As soon as video arrives,
+  # ffmpeg takes ONLY the video track (it doesn't even ask for the sound
+  # track), copies it without re-encoding (very little CPU), and publishes it
+  # to   bar/<barId>/<cameraId>   which is the only thing viewers can watch.
+  # So even if a camera or phone sends sound, the sound never leaves this
+  # server and nothing is ever recorded.
+  "~^in/([A-Za-z0-9_-]+)/([A-Za-z0-9_-]+)$":
+    source: publisher
+    runOnReady: >-
+      ffmpeg -nostdin -hide_banner -loglevel error
+      -rtsp_transport tcp -allowed_media_types video
+      -i rtsp://bartap-internal:__INTERNAL_KEY__@127.0.0.1:8554/in/$G1/$G2
+      -map 0:v:0 -an -sn -dn -c:v copy
+      -f rtsp -rtsp_transport tcp
+      rtsp://bartap-internal:__INTERNAL_KEY__@127.0.0.1:8554/bar/$G1/$G2
+    runOnReadyRestart: true
+
+  # What viewers watch: video only, published only by the ffmpeg above.
+  "~^bar/[A-Za-z0-9_-]+/[A-Za-z0-9_-]+$":
+    source: publisher

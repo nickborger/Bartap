@@ -39,7 +39,7 @@ service cloud.firestore {
     function ownerEditableBarFields() {
       return ['hoursToday', 'hoursTodaySetOn', 'coverCharge', 'currentDJsBand',
               'crowdDensity', 'estimatedWaitMinutes', 'websiteUrl', 'phone',
-              'tagline', 'category', 'cameras', 'drinkSpecials', 'events',
+              'tagline', 'category', 'cameras', 'cameraPrivacy', 'drinkSpecials', 'events',
               'websiteVerification', 'activeFlashDeal', 'staff', 'auditLog',
               'ownerReplies', 'updatedAt', 'updatedBy'];
     }
@@ -47,7 +47,23 @@ service cloud.firestore {
     function validBar(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() <= 120
         && data.address is string
-        && data.get('isActive', true) is bool;
+        && data.get('isActive', true) is bool
+        && validCameraFields(data);
+    }
+
+    // Camera relay: at most 16 cameras per bar, and the privacy note is a
+    // small map whose signageConfirmed is true or false. No stream keys or
+    // camera passwords are ever stored here (the relay server works keys out
+    // from its own secret), so the public can safely read bars.
+    function validCameraFields(data) {
+      return data.get('cameras', []) is list
+        && data.get('cameras', []).size() <= 16
+        && (!('cameraPrivacy' in data) || (
+              data.cameraPrivacy is map
+              && data.cameraPrivacy.keys().hasOnly(['signageConfirmed', 'confirmedBy', 'confirmedAt'])
+              && data.cameraPrivacy.get('signageConfirmed', false) is bool
+              && data.cameraPrivacy.get('confirmedBy', '') is string
+              && data.cameraPrivacy.get('confirmedAt', '') is string));
     }
 
     function validScore(v) {
@@ -131,7 +147,8 @@ service cloud.firestore {
 
       allow update: if signedIn() && ownsBar(barId)
         && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(ownerEditableBarFields());
+              .hasOnly(ownerEditableBarFields())
+        && validCameraFields(request.resource.data);
     }
 
     // ---------------------------------------------------------------

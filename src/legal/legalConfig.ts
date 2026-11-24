@@ -10,7 +10,7 @@
  */
 
 /** The email people use for privacy questions, account deletion and reports. */
-export const CONTACT_EMAIL = 'nickborger90@gmail.com';
+export const CONTACT_EMAIL = '';
 
 /** Who runs Bar Tap. Change it if you form a business (for example 'Bar Tap LLC'). */
 export const OPERATOR_NAME = 'Bar Tap';

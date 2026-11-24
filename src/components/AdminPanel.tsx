@@ -13,8 +13,10 @@ import {
   Trash2,
   UserMinus,
   Users,
+  Video,
   X,
 } from 'lucide-react';
+import { CameraSetupPanel } from './CameraSetupPanel.tsx';
 import { BarOverride, StoredBar } from '../services/barDataService.ts';
 import {
   AppUserSummary,
@@ -43,7 +45,7 @@ interface AdminPanelProps {
   legacyOverrides: Record<string, BarOverride>;
 }
 
-type View = { kind: 'list' } | { kind: 'add' } | { kind: 'edit'; barId: string };
+type View = { kind: 'list' } | { kind: 'add' } | { kind: 'edit'; barId: string } | { kind: 'cameras'; barId: string };
 type Tab = 'bars' | 'owners';
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ adminUid, bars, usingBuiltIn, legacyOverrides }) => {
@@ -125,6 +127,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ adminUid, bars, usingBui
       setBusyId(null);
     }
   };
+
+  // ------------------------------------------------------------------ camera setup
+  if (view.kind === 'cameras') {
+    const bar = bars.find((b) => b.id === view.barId);
+    return (
+      <div className="space-y-4 max-w-3xl mx-auto" data-testid="admin-cameras">
+        <button onClick={() => setView({ kind: 'list' })} className={secondaryBtn}>
+          <X className="w-4 h-4" /> Back to bars
+        </button>
+        {!bar ? (
+          <p className="text-sm text-neutral-400">That bar is gone.</p>
+        ) : usingBuiltIn ? (
+          <p className="text-sm text-amber-300">
+            First tap “Copy built-in bars to Firestore” on the bar list. Cameras are saved in the database.
+          </p>
+        ) : (
+          <>
+            <h2 className="text-lg font-black text-neutral-100">{bar.name}</h2>
+            <CameraSetupPanel bar={bar} />
+          </>
+        )}
+      </div>
+    );
+  }
 
   // ------------------------------------------------------------------ form views
   if (view.kind !== 'list') {
@@ -245,6 +271,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ adminUid, bars, usingBui
                     <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
                       <button onClick={() => setView({ kind: 'edit', barId: bar.id })} className={secondaryBtn} aria-label={`Edit ${bar.name}`}>
                         <Pencil className="w-4 h-4" /> Edit
+                      </button>
+                      <button
+                        onClick={() => setView({ kind: 'cameras', barId: bar.id })}
+                        className={secondaryBtn}
+                        aria-label={`Cameras for ${bar.name}`}
+                        data-testid={`admin-cameras-${bar.id}`}
+                      >
+                        <Video className="w-4 h-4" /> Cameras
                       </button>
                       <button onClick={() => toggleActive(bar)} className={secondaryBtn} disabled={busyId === bar.id}>
                         {inactive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}

@@ -167,6 +167,9 @@ Once the Oracle site works and you can sign in on it:
 
 ## Later: the camera video relay on the same VM
 
+**Now built:** follow RELAY_SETUP.md (one command: `bash deploy/setup-relay.sh your-domain your-firebase-project-id`).
+The notes below are the older plan.
+
 The cloud relay for bar camera feeds can run on this same VM. Run it on a local port (e.g. `127.0.0.1:8081`)
 and let Caddy publish it with HTTPS at a subdomain. The commented `relay...` block at the bottom of
 `deploy/Caddyfile` shows how: add a DNS record for the subdomain pointing at the same IP, uncomment the block,

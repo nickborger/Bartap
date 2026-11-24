@@ -114,6 +114,7 @@ export const BarProfileModal: React.FC<BarProfileModalProps> = ({
           {/* Top Live Camera Feed / Visual Header */}
           <div className="relative w-full bg-neutral-950">
             <LiveCameraCanvas
+              barId={bar.id}
               barName={bar.name}
               camera={selectedCamera}
               baseImage={bar.image}

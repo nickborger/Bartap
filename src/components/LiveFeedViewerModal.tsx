@@ -152,6 +152,7 @@ export const LiveFeedViewerModal: React.FC<LiveFeedViewerModalProps> = ({
           <div className="lg:col-span-2 bg-neutral-950 flex flex-col justify-between min-h-0">
             <div className="relative w-full aspect-video">
               <LiveCameraCanvas
+                barId={bar.id}
                 barName={bar.name}
                 camera={selectedCamera}
                 baseImage={bar.image}

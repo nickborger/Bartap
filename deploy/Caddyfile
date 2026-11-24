@@ -1,27 +1,49 @@
 # Caddy config for Bar Tap on the Oracle VM.
-# setup-vm.sh copies this to /etc/caddy/Caddyfile and puts your domain in place of bartap.example.com.
+# setup-vm.sh (and setup-relay.sh) copy this to /etc/caddy/Caddyfile and put your
+# domain in place of bartap.example.com.
 # Caddy gets and renews the HTTPS certificate on its own once the domain points at the VM.
 
 bartap.example.com {
-	root * /var/www/bartap
 	encode zstd gzip
 
-	# Built JS/CSS files have a hash in their names, so browsers can keep them for a year.
-	@assets path /assets/*
-	header @assets Cache-Control "public, max-age=31536000, immutable"
+	# ---- Camera relay (only answers once setup-relay.sh has been run) ----
 
-	# index.html must always be fresh so a new deploy shows up right away.
-	@notassets not path /assets/*
-	header @notassets Cache-Control "no-cache"
+	# Bar Tap relay helper: live/offline status and camera keys for owners.
+	handle_path /relay/api/* {
+		# The "may this camera stream?" check is for MediaMTX on this machine only.
+		respond /auth* 404
+		reverse_proxy 127.0.0.1:8081
+	}
 
-	# Single-page app: any path that is not a real file gets index.html.
-	try_files {path} /index.html
-	file_server
+	# WebRTC: low-latency video for viewers, and the phone "Go live" page.
+	handle_path /relay/rtc/* {
+		reverse_proxy 127.0.0.1:8889 {
+			# MediaMTX doesn't know it lives under /relay/rtc, so fix its redirects.
+			header_down Location "^/(.*)$" "/relay/rtc/$1"
+		}
+	}
+
+	# HLS: backup player for browsers where WebRTC can't connect.
+	handle_path /relay/hls/* {
+		reverse_proxy 127.0.0.1:8888 {
+			header_down Location "^/(.*)$" "/relay/hls/$1"
+		}
+	}
+
+	# ---- The Bar Tap website ----
+	handle {
+		root * /var/www/bartap
+
+		# Built JS/CSS files have a hash in their names, so browsers can keep them for a year.
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+
+		# index.html must always be fresh so a new deploy shows up right away.
+		@notassets not path /assets/*
+		header @notassets Cache-Control "no-cache"
+
+		# Single-page app: any path that is not a real file gets index.html.
+		try_files {path} /index.html
+		file_server
+	}
 }
-
-# Later: the camera video relay can run on this same VM, for example on port 8081,
-# and be published at its own subdomain like this:
-#
-# relay.bartap.example.com {
-# 	reverse_proxy 127.0.0.1:8081
-# }

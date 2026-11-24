@@ -1,6 +1,6 @@
 export interface CloudRelayConfig {
   streamUrl: string;
-  ingestProtocol: 'RTSP-TLS' | 'WebRTC-Edge' | 'SRT' | 'Low-Latency HLS';
+  ingestProtocol: 'RTSP-TLS' | 'WebRTC-Edge' | 'SRT' | 'Low-Latency HLS' | 'RTMPS / WebRTC';
   edgeNode: string; // e.g. "TLH-Edge-01 (Tallahassee PoP)"
   relayStatus: 'ACTIVE' | 'STANDBY' | 'CONNECTING' | 'MAINTENANCE';
   bitrateKbps: number;
@@ -17,9 +17,24 @@ export interface CameraAngle {
   viewType: 'patio' | 'main_bar' | 'stage' | 'entrance' | 'lounge';
   fps: number;
   crowdLevel: number; // 0-100%
+  /** The owner's on/off switch for the real camera relay: 'STANDBY' = turned off. */
   status: 'LIVE' | 'STANDBY';
   resolution: string;
   cloudRelay: CloudRelayConfig;
+  /**
+   * Camera relay: bumping this number makes a new stream key (the old one stops
+   * working within seconds). Keys are never stored; the relay server works them out.
+   */
+  keyVersion?: number;
+  /** Camera relay: how this camera was last set up (just a hint for the setup screen). */
+  connectMethod?: 'kit' | 'phone' | 'app';
+}
+
+/** Patron privacy for the camera relay. Cameras can't go live until signage is confirmed. */
+export interface CameraPrivacy {
+  signageConfirmed: boolean;
+  confirmedBy?: string;
+  confirmedAt?: string;
 }
 
 export interface DrinkSpecial {
@@ -123,6 +138,8 @@ export interface BarLocation {
   isActive?: boolean;
   /** Partner market the bar is listed under (a SUPPORTED_CITIES name). Defaults to city. */
   market?: string;
+  /** Camera relay privacy confirmation (owner-editable). */
+  cameraPrivacy?: CameraPrivacy;
 }
 
 export interface VenueEvent {

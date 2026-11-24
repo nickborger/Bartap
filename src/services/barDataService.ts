@@ -127,6 +127,7 @@ export const OWNER_EDITABLE_FIELDS = [
   'tagline',
   'category',
   'cameras',
+  'cameraPrivacy',
   'drinkSpecials',
   'events',
   'websiteVerification',
@@ -290,6 +291,21 @@ export function mergeBars(storedBars: StoredBar[], reviewsByBar: ReviewsByBar): 
 }
 
 const clean = (v: unknown) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
+
+/**
+ * Camera relay settings (camera list with on/off and key numbers, and the
+ * signage confirmation). Owners and admins may both change these fields.
+ */
+export async function saveCameraSettings(
+  uid: string,
+  barId: string,
+  changes: { cameras?: BarLocation['cameras']; cameraPrivacy?: BarLocation['cameraPrivacy'] }
+) {
+  const data: Record<string, unknown> = { updatedBy: uid, updatedAt: serverTimestamp() };
+  if (changes.cameras) data.cameras = clean(changes.cameras);
+  if (changes.cameraPrivacy) data.cameraPrivacy = clean(changes.cameraPrivacy);
+  await updateDoc(doc(db, 'bars', barId), data);
+}
 
 /**
  * Saves an owner's edits to their bar: only the owner-editable fields that changed, plus any

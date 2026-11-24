@@ -99,13 +99,15 @@ function buildCameras(barId: string, views: CameraViewInput[], existing: CameraA
         crowdLevel: 0,
         status: 'LIVE',
         resolution: '1080p HD',
+        keyVersion: 0,
         cloudRelay: {
-          streamUrl: `wss://relay.bartap.live/tlh-stream/${barId}/${id}`,
-          ingestProtocol: 'WebRTC-Edge',
-          edgeNode: 'TLH-Metro-Cloud-01',
+          // Where viewers watch it on the Bar Tap relay (see relayService.ts).
+          streamUrl: `/relay/rtc/bar/${barId}/${id}`,
+          ingestProtocol: 'RTMPS / WebRTC',
+          edgeNode: 'Bar Tap relay',
           relayStatus: 'ACTIVE',
-          bitrateKbps: 4200,
-          latencyMs: 175 + ((idx * 17) % 35),
+          bitrateKbps: 1500,
+          latencyMs: 500 + ((idx * 17) % 35),
           packetLossPercent: 0,
         },
       };
