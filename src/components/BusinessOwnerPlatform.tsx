@@ -164,7 +164,7 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
         time: '9:00 PM – 2:00 AM',
         performer: 'DJ Midnight & Guests',
         genre: 'Top 40 / Hip Hop / EDM',
-        coverInfo: '$5 Wristband / Free with Bar Tap VIP',
+        coverInfo: '$5 Wristband / Free with Bar Tap',
         featured: false,
         description: 'Drink specials running all night for students and local nightlife crew.',
       },
@@ -221,11 +221,11 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
         neighborhood: selectedBar.neighborhood,
         city: selectedBar.city,
         title: 'VIP Line Bypass & 2-for-1 Signature Cocktails',
-        offerDetails: 'Show your Bar Tap VIP screen at the door host to skip general entrance line.',
+        offerDetails: 'Show your Bar Tap voucher at the door host to skip general entrance line.',
         savingsValue: '$12.00 Value',
         voucherCode: `BT-${selectedBar.name.substring(0, 4).toUpperCase()}-VIP`,
         category: 'entry',
-        terms: 'Valid once per evening. Must present active VIP pass to door captain.',
+        terms: 'Valid once per evening. Must present the Bar Tap voucher to door captain.',
         sponsorType: 'Venue Partner',
       },
     ];
@@ -595,7 +595,7 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
       neighborhood: selectedBar.neighborhood,
       city: selectedBar.city,
       title: newVipTitle.trim(),
-      offerDetails: newVipDetails.trim() || 'Exclusive perk for Bar Tap subscribers.',
+      offerDetails: newVipDetails.trim() || 'Exclusive perk for Bar Tap users.',
       savingsValue: newVipValue.trim() || '$10.00 Value',
       voucherCode: newVipCode.trim().toUpperCase() || 'BT-VIP-PERK',
       category: newVipCategory,
@@ -1381,7 +1381,6 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
                         barName={selectedBar.name}
                         camera={activeCam || selectedBar.cameras[0]}
                         baseImage={selectedBar.image}
-                        isPremium={true}
                       />
                       {isBlackoutActive && (
                         <div className="absolute inset-0 bg-neutral-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
@@ -1569,7 +1568,7 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
                     <span>Exclusive VIP Partner Deals & Line Skip Passes</span>
                   </h3>
                   <p className="text-xs text-neutral-400 mt-0.5">
-                    Subscribers to Bar Tap VIP unlock these exclusive venue perks. Each redemption is tracked with a unique digital voucher code.
+                    Every Bar Tap user can claim these exclusive venue perks for free. Each redemption is tracked with a unique digital voucher code.
                   </p>
                 </div>
 
@@ -2105,7 +2104,6 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
                     barName={selectedBar.name}
                     camera={activeCam || selectedBar.cameras[0]}
                     baseImage={selectedBar.image}
-                    isPremium={true}
                   />
                 </div>
 

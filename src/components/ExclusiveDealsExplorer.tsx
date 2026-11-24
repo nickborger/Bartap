@@ -5,7 +5,6 @@ import {
   Copy,
   Crown,
   ExternalLink,
-  Lock,
   QrCode,
   Radio,
   Sparkles,
@@ -15,8 +14,6 @@ import { BarLocation, ExclusiveDeal } from '../types.ts';
 import { ALL_EXCLUSIVE_DEALS } from '../data/exclusiveDeals.ts';
 
 interface ExclusiveDealsExplorerProps {
-  isPremium: boolean;
-  onOpenPremiumModal: () => void;
   onOpenBarProfile: (bar: BarLocation) => void;
   onOpenLiveStream: (bar: BarLocation) => void;
   bars: BarLocation[];
@@ -24,8 +21,6 @@ interface ExclusiveDealsExplorerProps {
 }
 
 export const ExclusiveDealsExplorer: React.FC<ExclusiveDealsExplorerProps> = ({
-  isPremium,
-  onOpenPremiumModal,
   onOpenBarProfile,
   onOpenLiveStream,
   bars,
@@ -65,44 +60,28 @@ export const ExclusiveDealsExplorer: React.FC<ExclusiveDealsExplorerProps> = ({
         <div className="max-w-2xl min-w-0">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-200 mb-2">
             <Crown className="w-4 h-4 fill-tan" />
-            VIP Member Exclusives · Free ($0/mo) Tier
+            Bar Tap Exclusives · Free for Everyone
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
             App-Exclusive Vendor & Venue Deals
           </h2>
           <p className="text-xs sm:text-sm text-neutral-300 mt-2 leading-relaxed">
-            Partnered with {currentCity || 'local'}'s top breweries, rooftop cocktail bars, and nightlife staples to offer VIP subscribers line skips, BOGO craft draughts, free perks, and food specials.
+            Partnered with {currentCity || 'local'}'s top breweries, rooftop cocktail bars, and nightlife staples to offer Bar Tap users line skips, BOGO craft draughts, free perks, and food specials.
           </p>
         </div>
 
-        {!isPremium ? (
-          <div className="p-4 rounded-2xl bg-neutral-950/80 border border-neutral-700 shrink-0 text-center space-y-2">
-            <div className="text-xs font-mono text-neutral-300 font-semibold">
-              FREE VIP TIER
-            </div>
-            <div className="text-2xl font-black text-white">$0.00/mo</div>
-            <button
-              onClick={onOpenPremiumModal}
-              className="w-full px-5 py-2.5 bg-copper hover:bg-tan text-ink font-bold text-xs rounded-xl transition shadow-lg shadow-black/30 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <Crown className="w-3.5 h-3.5 fill-neutral-950" />
-              <span>Activate Free VIP</span>
-            </button>
-          </div>
-        ) : (
-          <div className="p-4 rounded-2xl bg-neutral-800/80 border border-neutral-700 shrink-0 flex items-center gap-3">
+        <div className="p-4 rounded-2xl bg-neutral-800/80 border border-neutral-700 shrink-0 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-neutral-700 text-white flex items-center justify-center border border-neutral-600">
               <Check className="w-5 h-5" />
             </div>
             <div>
               <div className="text-xs font-bold text-white flex items-center gap-1">
                 <Crown className="w-3.5 h-3.5 fill-tan text-neutral-200" />
-                VIP Member Active
+                Free for Everyone
               </div>
               <div className="text-[11px] text-neutral-400">All vouchers ready for redemption</div>
             </div>
           </div>
-        )}
       </div>
 
       {/* Category Tabs */}
@@ -172,23 +151,13 @@ export const ExclusiveDealsExplorer: React.FC<ExclusiveDealsExplorerProps> = ({
 
               {/* Action */}
               <div className="pt-3 border-t border-neutral-800/80 flex items-center justify-between gap-2">
-                {isPremium ? (
-                  <button
-                    onClick={() => setActiveVoucher(deal)}
-                    className="flex-1 py-2 px-3 bg-copper hover:bg-tan text-ink font-bold text-xs rounded-xl transition shadow-md shadow-black/20 cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <QrCode className="w-3.5 h-3.5" />
-                    <span>Redeem Voucher</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={onOpenPremiumModal}
-                    className="flex-1 py-2 px-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-semibold text-xs rounded-xl border border-neutral-700 transition cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <Lock className="w-3.5 h-3.5" />
-                    <span>Unlock with Free VIP</span>
-                  </button>
-                )}
+                <button
+                  onClick={() => setActiveVoucher(deal)}
+                  className="flex-1 py-2 px-3 bg-copper hover:bg-tan text-ink font-bold text-xs rounded-xl transition shadow-md shadow-black/20 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  <span>Redeem Voucher</span>
+                </button>
 
                 {associatedBar && (
                   <button
@@ -222,7 +191,7 @@ export const ExclusiveDealsExplorer: React.FC<ExclusiveDealsExplorerProps> = ({
 
             <div>
               <div className="text-[11px] uppercase tracking-wider text-neutral-300 font-mono font-semibold">
-                Official Bar Tap VIP Pass Voucher
+                Official Bar Tap Voucher
               </div>
               <h3 className="text-xl font-bold text-white mt-1">{activeVoucher.barName}</h3>
               <p className="text-xs text-neutral-300 mt-1">{activeVoucher.title}</p>
@@ -246,7 +215,7 @@ export const ExclusiveDealsExplorer: React.FC<ExclusiveDealsExplorerProps> = ({
             </div>
 
             <p className="text-[11px] text-neutral-400 leading-snug">
-              Single-use per VIP member. Show screen at {activeVoucher.barName} before tab checkout.
+              Single use per person. Show screen at {activeVoucher.barName} before tab checkout.
             </p>
 
             <button

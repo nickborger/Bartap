@@ -7,7 +7,6 @@ import {
   Server,
   Shield,
   ShieldCheck,
-  Sparkles,
   User,
 } from 'lucide-react';
 import { BusinessOwnerProfile, UserProfile, BarLocation } from '../types.ts';
@@ -21,7 +20,6 @@ interface HeaderProps {
   currentUser: UserProfile | null;
   currentBusinessOwner: BusinessOwnerProfile | null;
   onOpenAuth: (initialTab?: 'user' | 'business') => void;
-  onOpenPremium: () => void;
   onOpenBusinessPlatform: () => void;
   isBusinessPlatformActive?: boolean;
   onToggleViewMode?: () => void;
@@ -44,7 +42,6 @@ export const Header: React.FC<HeaderProps> = ({
   currentUser,
   currentBusinessOwner,
   onOpenAuth,
-  onOpenPremium,
   onOpenBusinessPlatform,
   isBusinessPlatformActive = false,
   onToggleViewMode,
@@ -120,7 +117,7 @@ export const Header: React.FC<HeaderProps> = ({
                 activeView === 'cams' ? 'text-white font-semibold' : ''
               }`}
             >
-              {currentUser?.isPremium ? 'Live Cams' : 'Bar Cams'}
+              Live Cams
             </button>
             <button
               onClick={() => onNavigate('my_bars')}
@@ -143,7 +140,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Crown className="w-3.5 h-3.5 text-neutral-300" />
-              <span>VIP Deals</span>
+              <span>Deals</span>
             </button>
             <button
               onClick={() => onNavigate('specials')}
@@ -214,23 +211,6 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Free VIP Tier CTA (for Patrons) */}
-          {!isBusinessPlatformActive &&
-            (currentUser?.isPremium ? (
-              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-neutral-800 border border-neutral-700 text-neutral-100 text-xs font-bold font-mono whitespace-nowrap">
-                <Crown className="w-3.5 h-3.5 fill-tan" />
-                <span>VIP PASS</span>
-              </div>
-            ) : (
-              <button
-                onClick={onOpenPremium}
-                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-copper hover:bg-tan text-ink text-xs font-black transition shadow-md cursor-pointer whitespace-nowrap min-h-[36px]"
-              >
-                <Sparkles className="w-3.5 h-3.5 fill-neutral-950" />
-                <span>Free VIP</span>
-              </button>
-            ))}
-
           {/* DISTINCT SIGN IN 2: PATRON SIGN IN */}
           <button
             onClick={() => onOpenAuth('user')}
@@ -270,7 +250,7 @@ export const Header: React.FC<HeaderProps> = ({
                 : 'text-neutral-300 bg-neutral-900/70 border border-neutral-800'
             }`}
           >
-            {currentUser?.isPremium ? 'Live Cams' : 'Bar Cams'}
+            Live Cams
           </button>
           <button
             onClick={() => onNavigate('my_bars')}
@@ -292,7 +272,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Crown className="w-3 h-3" />
-            <span>VIP Deals</span>
+            <span>Deals</span>
           </button>
           <button
             onClick={() => onNavigate('specials')}

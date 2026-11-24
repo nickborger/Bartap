@@ -35,8 +35,6 @@ interface BarProfileModalProps {
   onToggleTapIn: () => void;
   onToggleSave: () => void;
   onAddReview: (barId: string, review: Review) => void;
-  isPremium: boolean;
-  onOpenPremium: () => void;
   onOpenOwnerPortalForBar?: (barId: string) => void;
   onOpenRelayModal?: () => void;
   canWriteReview?: boolean;
@@ -53,8 +51,6 @@ export const BarProfileModal: React.FC<BarProfileModalProps> = ({
   onToggleTapIn,
   onToggleSave,
   onAddReview,
-  isPremium,
-  onOpenPremium,
   onOpenOwnerPortalForBar,
   onOpenRelayModal,
   canWriteReview = true,
@@ -123,8 +119,6 @@ export const BarProfileModal: React.FC<BarProfileModalProps> = ({
               baseImage={bar.image}
               isFullscreen={isFullscreenStream}
               onFullscreenToggle={() => setIsFullscreenStream(!isFullscreenStream)}
-              isPremium={isPremium}
-              onOpenTrial={onOpenPremium}
               onOpenRelayModal={onOpenRelayModal}
             />
 
@@ -159,19 +153,10 @@ export const BarProfileModal: React.FC<BarProfileModalProps> = ({
                   })}
                 </div>
 
-                {isPremium ? (
-                  <span className="text-[11px] font-mono text-neutral-200 font-semibold px-2 py-0.5 rounded bg-neutral-800 border border-neutral-700 flex items-center gap-1 shrink-0">
-                    <Crown className="w-3 h-3 fill-tan" />
-                    Unlimited 24/7 Live Feed
-                  </span>
-                ) : (
-                  <button
-                    onClick={onOpenPremium}
-                    className="text-[11px] font-mono text-neutral-200 hover:text-white hover:underline flex items-center gap-1 shrink-0 cursor-pointer"
-                  >
-                    <span>Free VIP Tier ($0/mo)</span>
-                  </button>
-                )}
+                <span className="text-[11px] font-mono text-neutral-200 font-semibold px-2 py-0.5 rounded bg-neutral-800 border border-neutral-700 flex items-center gap-1 shrink-0">
+                  <Radio className="w-3 h-3 text-red-500" />
+                  24/7 Live Feed
+                </span>
               </div>
             )}
           </div>
@@ -257,30 +242,21 @@ export const BarProfileModal: React.FC<BarProfileModalProps> = ({
               </div>
             </div>
 
-            {/* VIP Deal Callout Banner if available */}
+            {/* Deal Callout Banner if available */}
             {exclusiveDeal && (
               <div className="mt-4 p-3 rounded-2xl bg-neutral-800/70 border border-neutral-700 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-xs">
                   <Crown className="w-4 h-4 text-neutral-200 shrink-0" />
                   <div>
-                    <span className="font-bold text-white">VIP Exclusive Offer: </span>
+                    <span className="font-bold text-white">Exclusive Offer: </span>
                     <span className="text-neutral-200">{exclusiveDeal.title}</span>
                     <span className="text-neutral-400"> ({exclusiveDeal.savingsValue})</span>
                   </div>
                 </div>
 
-                {!isPremium ? (
-                  <button
-                    onClick={onOpenPremium}
-                    className="px-3 py-1 bg-copper hover:bg-tan text-ink font-bold text-xs rounded-lg transition shrink-0 cursor-pointer"
-                  >
-                    Unlock Free VIP
-                  </button>
-                ) : (
-                  <span className="px-2 py-0.5 rounded bg-neutral-800 border border-neutral-600 text-neutral-200 text-xs font-mono font-bold shrink-0">
-                    VIP Voucher Active
-                  </span>
-                )}
+                <span className="px-2 py-0.5 rounded bg-neutral-800 border border-neutral-600 text-neutral-200 text-xs font-mono font-bold shrink-0">
+                  Voucher Ready
+                </span>
               </div>
             )}
 

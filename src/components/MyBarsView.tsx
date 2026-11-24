@@ -21,7 +21,6 @@ interface MyBarsViewProps {
   onOpenLiveStream: (bar: BarLocation) => void;
   currentUser: UserProfile | null;
   onOpenAuth: () => void;
-  isPremium?: boolean;
 }
 
 export const MyBarsView: React.FC<MyBarsViewProps> = ({
@@ -34,7 +33,6 @@ export const MyBarsView: React.FC<MyBarsViewProps> = ({
   onOpenLiveStream,
   currentUser,
   onOpenAuth,
-  isPremium = false,
 }) => {
   const savedBars = bars.filter((b) => savedBarIds.includes(b.id));
 
@@ -80,7 +78,6 @@ export const MyBarsView: React.FC<MyBarsViewProps> = ({
               onToggleSave={() => onToggleSave(bar.id)}
               onOpenProfile={() => onOpenProfile(bar)}
               onOpenLiveStream={() => onOpenLiveStream(bar)}
-              isPremium={isPremium}
             />
           ))}
         </div>

@@ -28,8 +28,6 @@ import { BarLocation, BusinessOwnerProfile, UserProfile } from '../types.ts';
  *   role                     - 'user' | 'owner' | 'admin' (LOCKED: admins set user/owner in the
  *                              app's Admin screen; 'admin' only in the Firebase console)
  *   ownedBarIds              - string[] of bar ids       (LOCKED: set from the Admin screen)
- *   isPremium                - paid / granted premium   (LOCKED: set in Firebase console)
- *   freeVip                  - user switched on the free VIP tier (user can set)
  *   ownerTitle, businessName, primaryBarId - owner display info (user can edit)
  *   savedBarIds, tappedBarIds - the user's own lists
  *   createdAt
@@ -42,8 +40,6 @@ export interface UserDoc {
   avatar: string;
   role: 'user' | 'owner' | 'admin';
   ownedBarIds: string[];
-  isPremium: boolean;
-  freeVip?: boolean;
   ownerTitle?: BusinessOwnerProfile['role'];
   businessName?: string;
   primaryBarId?: string;
@@ -70,8 +66,6 @@ export async function ensureUserDoc(user: User, nameOverride?: string): Promise<
       avatar: initialsOf(name),
       role: 'user',
       ownedBarIds: [],
-      isPremium: false,
-      freeVip: false,
       savedBarIds: [],
       tappedBarIds: [],
       createdAt: serverTimestamp(),
@@ -131,10 +125,6 @@ export function setBarTapped(uid: string, barId: string, tapped: boolean) {
   });
 }
 
-export function activateFreeVip(uid: string) {
-  return updateDoc(userRef(uid), { freeVip: true });
-}
-
 export function saveOwnerDisplayInfo(
   uid: string,
   info: { ownerTitle?: BusinessOwnerProfile['role']; businessName?: string; primaryBarId?: string }
@@ -165,15 +155,11 @@ const formatMonthYear = (ts?: Timestamp | null) => {
 };
 
 export function toUserProfile(uid: string, d: UserDoc): UserProfile {
-  const premium = !!d.isPremium || !!d.freeVip;
   return {
     id: uid,
     name: d.name || 'Bar Tap Patron',
     email: d.email || '',
     avatar: d.avatar || initialsOf(d.name || 'U'),
-    isPremium: premium,
-    isTrial: false,
-    premiumUntil: premium ? 'Free Forever' : undefined,
     savedBarIds: d.savedBarIds || [],
     tappedBarIds: d.tappedBarIds || [],
     joinedDate: formatMonthYear(d.createdAt),

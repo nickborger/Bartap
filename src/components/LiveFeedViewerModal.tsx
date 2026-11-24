@@ -25,8 +25,6 @@ interface LiveFeedViewerModalProps {
   isTappedIn: boolean;
   onToggleTapIn: () => void;
   onOpenProfile: () => void;
-  isPremium?: boolean;
-  onOpenPremium?: () => void;
   onOpenRelayModal?: () => void;
 }
 
@@ -45,8 +43,6 @@ export const LiveFeedViewerModal: React.FC<LiveFeedViewerModalProps> = ({
   isTappedIn,
   onToggleTapIn,
   onOpenProfile,
-  isPremium = false,
-  onOpenPremium,
   onOpenRelayModal,
 }) => {
   const [selectedCamera, setSelectedCamera] = useState<CameraAngle>(bar.cameras[0]);
@@ -161,8 +157,6 @@ export const LiveFeedViewerModal: React.FC<LiveFeedViewerModalProps> = ({
                 baseImage={bar.image}
                 isFullscreen={isFullscreen}
                 onFullscreenToggle={() => setIsFullscreen(!isFullscreen)}
-                isPremium={isPremium}
-                onOpenTrial={onOpenPremium}
                 onOpenRelayModal={onOpenRelayModal}
               />
             </div>

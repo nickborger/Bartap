@@ -7,7 +7,7 @@ The Firebase config is in `src/firebase.ts`.
 
 | Firestore path | What | Who can write |
 | --- | --- | --- |
-| `users/{uid}` | name, email, role (`user` / `owner` / `admin`), `ownedBarIds`, `isPremium`, `freeVip`, `savedBarIds`, `tappedBarIds` | the user (not `role`, `isPremium`, `ownedBarIds`); admins can set `role` to `user`/`owner` and `ownedBarIds` from the Admin screen |
+| `users/{uid}` | name, email, role (`user` / `owner` / `admin`), `ownedBarIds`, `savedBarIds`, `tappedBarIds` | the user (not `role`, `ownedBarIds`); admins can set `role` to `user`/`owner` and `ownedBarIds` from the Admin screen |
 | `reviews/{reviewId}` | shared reviews: `barId`, `userId`, `userName`, `rating`, `comment`, `vibeTags`, `createdAt` | the reviewer (create only) |
 | `bars/{barId}` | the full bar listing: name, address, `coordinates`, `market`, neighborhood, type, `weeklyHours`, phone, cover, `priceLevel`, features, drink specials, photo, cameras, `isActive`, plus owner edits (today's hours, events, deals, replies to reviews) | admins (everything); that bar's owner (live fields only: today's hours, cover, specials, events, deals, phone, website, tagline, cameras, replies) |
 | `config/seed` | marks that the built-in bars were copied into `bars` | admins |
@@ -63,8 +63,6 @@ else, an admin. To add another admin, repeat steps 2-3 for their document. To re
    with **Approve** (links them to the bar you pick) and **Decline**.
 4. To remove an owner, tap the unlink icon next to the bar under **Current owners**.
 
-To give someone premium by hand, set `isPremium` to `true` on their user document.
-
 ## Optional: Firebase Storage for photos
 
 Photo uploads work without this. Storage keeps bar documents small and lets you use full-size photos.
@@ -73,8 +71,7 @@ New Firebase projects need the pay-as-you-go **Blaze** plan to use Storage (it h
 1. Firebase console > **Storage** > **Get started** (pick the same region as Firestore).
 2. **Storage > Rules**: paste all of `storage.rules`, then **Publish** (only admins can upload; anyone can view).
 
-## Free VIP tier
+## Bar Tap is free for every user
 
-The app's "Activate Free VIP ($0/mo)" button sets `freeVip: true` on the user's own document, which the
-rules allow. `isPremium` (for a future paid tier) can only be set from the console or a server.
-When VIP stops being free, remove the free activation and grant `isPremium` from a server instead.
+There are no user tiers. Everyone gets live camera feeds, deals and vouchers. Older user documents may still
+have `isPremium` or `freeVip` fields from an earlier version; the app ignores them, so you can leave them or delete them.

@@ -179,10 +179,6 @@ export interface UserProfile {
   name: string;
   email: string;
   avatar: string;
-  isPremium: boolean;
-  isTrial?: boolean;
-  trialEndsAt?: string;
-  premiumUntil?: string;
   savedBarIds: string[];
   tappedBarIds: string[];
   joinedDate: string;

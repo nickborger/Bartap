@@ -6,7 +6,6 @@ interface LiveMultiCamBarProps {
   bars: BarLocation[];
   onSelectBarStream: (bar: BarLocation) => void;
   activeStreamBarId?: string;
-  isPremium?: boolean;
   onOpenRelayModal?: () => void;
   currentCity?: string;
 }
@@ -15,7 +14,6 @@ export const LiveMultiCamBar: React.FC<LiveMultiCamBarProps> = ({
   bars,
   onSelectBarStream,
   activeStreamBarId,
-  isPremium = false,
   onOpenRelayModal,
   currentCity = 'Tallahassee',
 }) => {
@@ -24,14 +22,10 @@ export const LiveMultiCamBar: React.FC<LiveMultiCamBarProps> = ({
       <div className="flex items-center justify-between gap-2 mb-2 px-1">
         <div className="flex items-center gap-2 min-w-0">
           <span
-            className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-              isPremium ? 'bg-red-500 animate-pulse' : 'bg-neutral-400'
-            }`}
+            className="w-2.5 h-2.5 rounded-full shrink-0 bg-red-500 animate-pulse"
           />
           <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-neutral-200 truncate">
-            {isPremium
-              ? `${currentCity} Live Cam Mosaic · Tap In Quick Switch`
-              : `${currentCity} Partner Cams (5-Min Snapshots) · Tap In Quick Switch`}
+            {`${currentCity} Live Cam Mosaic · Tap In Quick Switch`}
           </h2>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -46,9 +40,7 @@ export const LiveMultiCamBar: React.FC<LiveMultiCamBarProps> = ({
             </button>
           )}
           <span className="text-[11px] font-mono text-neutral-400 hidden sm:inline">
-            {isPremium
-              ? `${bars.length} venues streaming live 24/7`
-              : `${bars.length} venues · photos update every 5m`}
+            {`${bars.length} venues streaming live 24/7`}
           </span>
         </div>
       </div>
@@ -76,17 +68,11 @@ export const LiveMultiCamBar: React.FC<LiveMultiCamBarProps> = ({
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
 
               <div className="absolute top-2 left-2 flex items-center gap-1">
-                {isPremium ? (
-                  <span className="px-1.5 py-0.5 rounded bg-red-600 text-white text-[9px] font-bold font-mono tracking-wider animate-pulse">
-                    LIVE
-                  </span>
-                ) : (
-                  <span className="px-1.5 py-0.5 rounded bg-black/75 text-neutral-200 text-[9px] font-mono font-bold border border-neutral-600/50">
-                    5M SNAP
-                  </span>
-                )}
+                <span className="px-1.5 py-0.5 rounded bg-red-600 text-white text-[9px] font-bold font-mono tracking-wider animate-pulse">
+                  LIVE
+                </span>
                 <span className="px-1.5 py-0.5 rounded bg-black/60 text-neutral-300 text-[9px] font-mono backdrop-blur-xs">
-                  {isPremium ? `${primaryCam?.fps || 30}fps` : 'Still'}
+                  {`${primaryCam?.fps || 30}fps`}
                 </span>
               </div>
 

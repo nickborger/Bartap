@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
   Building2,
-  Crown,
   KeyRound,
   Lock,
   LogOut,
   Mail,
-  Sparkles,
   User,
   X,
 } from 'lucide-react';
@@ -32,7 +30,6 @@ interface AuthModalProps {
   onSignedIn: (tab: 'user' | 'business') => void;
   onSignOutUser: () => void;
   onSignOutOwner: () => void;
-  onOpenPremiumModal: () => void;
   onOpenBusinessPlatform: () => void;
   initialTab?: 'user' | 'business';
   bars: BarLocation[];
@@ -56,7 +53,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onSignedIn,
   onSignOutUser,
   onSignOutOwner,
-  onOpenPremiumModal,
   onOpenBusinessPlatform,
   initialTab = 'user',
   bars,
@@ -401,46 +397,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </div>
                 </div>
 
-                {/* Membership Card */}
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-neutral-950 to-neutral-900 border border-neutral-800">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sparkles
-                        className={`w-4 h-4 ${
-                          currentUser.isPremium ? 'text-neutral-100' : 'text-neutral-400'
-                        }`}
-                      />
-                      <span className="text-xs font-bold uppercase tracking-wider text-neutral-200">
-                        {currentUser.isPremium
-                          ? 'Bar Tap VIP Member (Free Tier)'
-                          : 'Basic Account'}
-                      </span>
-                    </div>
-                    {currentUser.isPremium && (
-                      <span className="text-[11px] text-neutral-200 font-mono font-medium">
-                        Active
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-neutral-400 mt-2 leading-relaxed">
-                    {currentUser.isPremium
-                      ? 'Unlimited 24/7 real-time live feeds, multi-angle CCTV, and exclusive vendor/venue deals unlocked at no cost.'
-                      : 'Basic tier displays 5-minute photo stills. Activate the Free VIP Tier ($0/mo) for continuous 24/7 video feeds and exclusive discounts.'}
-                  </p>
-                  {!currentUser.isPremium && (
-                    <button
-                      onClick={() => {
-                        onClose();
-                        onOpenPremiumModal();
-                      }}
-                      className="mt-3 w-full py-2 bg-copper hover:bg-tan text-ink font-bold text-xs rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <Crown className="w-3.5 h-3.5" />
-                      <span>Activate Free VIP Account ($0/mo)</span>
-                    </button>
-                  )}
-                </div>
-
                 {/* Quick Patron Stats */}
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div className="p-3 rounded-xl bg-neutral-950/60 border border-neutral-800 text-center">
@@ -485,7 +441,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     Sign In as App Patron
                   </h3>
                   <p className="text-xs text-neutral-400 mt-1">
-                    Save favorite venues to your personal feed, unlock live video streams, and tap in to claim VIP perks.
+                    Save favorite venues to your personal feed, watch live video streams, and tap in to claim deals.
                   </p>
                 </div>
 

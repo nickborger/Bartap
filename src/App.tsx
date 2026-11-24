@@ -2,9 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Building2,
   Calendar,
-  Camera,
   Compass,
-  Crown,
   ExternalLink,
   Globe,
   Heart,
@@ -38,7 +36,6 @@ import { MyBarsView } from './components/MyBarsView.tsx';
 import { ExclusiveDealsExplorer } from './components/ExclusiveDealsExplorer.tsx';
 import { BarOwnerPortalModal } from './components/BarOwnerPortalModal.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
-import { PremiumModal } from './components/PremiumModal.tsx';
 import { CloudRelayNetworkModal } from './components/CloudRelayNetworkModal.tsx';
 import { BusinessOwnerPlatform } from './components/BusinessOwnerPlatform.tsx';
 import { AdminPanel } from './components/AdminPanel.tsx';
@@ -47,7 +44,6 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from './firebase.ts';
 import {
   UserDoc,
-  activateFreeVip,
   ensureUserDoc,
   setBarSaved,
   setBarTapped,
@@ -193,7 +189,6 @@ export default function App() {
   const [profileBar, setProfileBar] = useState<BarLocation | null>(null);
   const [liveStreamBar, setLiveStreamBar] = useState<BarLocation | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const [isOwnerPortalOpen, setIsOwnerPortalOpen] = useState(false);
   const [ownerPortalTargetBarId, setOwnerPortalTargetBarId] = useState<string | undefined>();
   const [isRelayNetworkOpen, setIsRelayNetworkOpen] = useState(false);
@@ -341,15 +336,6 @@ export default function App() {
     saveOwnerBarEdits(currentBusinessOwner.id, currentBar, updatedBar).catch((err) =>
       reportSaveError('your venue changes', err)
     );
-  };
-
-  // Activate Free VIP Tier handler
-  const handleActivateFreeVip = () => {
-    if (!currentUser) {
-      handleOpenAuth('user');
-      return;
-    }
-    activateFreeVip(currentUser.id).catch((err) => reportSaveError('your VIP upgrade', err));
   };
 
   // Sign Out Handlers (one Firebase account covers both patron and owner roles)
@@ -569,8 +555,6 @@ export default function App() {
     tappedInBars,
   ]);
 
-  const isPremiumActive = !!currentUser?.isPremium;
-
   // =========================================================================
   // VIEW MODE: ADMIN (role "admin" only; writes are also enforced by firestore.rules)
   // =========================================================================
@@ -634,8 +618,6 @@ export default function App() {
             canWriteReview={!!currentUser}
             reviewerName={currentUser?.name}
             onRequestSignIn={() => handleOpenAuth('user')}
-            isPremium={true}
-            onOpenPremium={() => setIsPremiumModalOpen(true)}
             onOpenRelayModal={() => setIsRelayNetworkOpen(true)}
           />
         )}
@@ -683,7 +665,6 @@ export default function App() {
         currentUser={currentUser}
         currentBusinessOwner={currentBusinessOwner}
         onOpenAuth={handleOpenAuth}
-        onOpenPremium={() => setIsPremiumModalOpen(true)}
         onOpenBusinessPlatform={handleOpenBusinessPlatform}
         isBusinessPlatformActive={false}
         onToggleViewMode={() => setViewMode('business_platform')}
@@ -699,26 +680,6 @@ export default function App() {
         onOpenAdmin={isAdmin ? () => setViewMode('admin') : undefined}
       />
 
-      {/* Free VIP Tier Notification Bar (for Basic Users) */}
-      {!isPremiumActive && (
-        <div className="bg-neutral-900 border-b border-neutral-800 text-neutral-200 px-3 sm:px-6 py-1.5 text-xs font-semibold">
-          <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-1.5 sm:gap-2 text-center sm:text-left">
-            <div className="flex items-center gap-2 min-w-0">
-              <Camera className="w-3.5 h-3.5 shrink-0 text-neutral-300" />
-              <span className="truncate">
-                Basic Mode: 5-minute still snapshots of {selectedCity} partner bars.
-              </span>
-            </div>
-            <button
-              onClick={() => setIsPremiumModalOpen(true)}
-              className="px-3 py-1 bg-copper hover:bg-tan text-ink rounded-lg text-[11px] font-black shadow-xs transition cursor-pointer whitespace-nowrap shrink-0"
-            >
-              Unlock Free VIP Tier (24/7 Live Video) →
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Main Container */}
       <main className="flex-1 max-w-[1600px] w-full mx-auto px-3 sm:px-5 lg:px-8 py-3 sm:py-5 space-y-4 sm:space-y-5">
         {/* VIEW 1 & TOP RATED: LIVE CAMS */}
@@ -728,16 +689,8 @@ export default function App() {
             <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gradient-to-r from-neutral-900 via-neutral-900 to-neutral-800/60 border border-neutral-800 p-4 sm:p-6 shadow-xl">
               <div className="max-w-4xl space-y-2.5 sm:space-y-3">
                 <div className="flex flex-wrap items-center gap-2 text-[11px] sm:text-xs font-semibold tracking-wider text-neutral-300">
-                  <span
-                    className={`w-2 h-2 rounded-full ${
-                      isPremiumActive ? 'bg-red-500 animate-pulse' : 'bg-tan'
-                    }`}
-                  />
-                  <span>
-                    {isPremiumActive
-                      ? `${activeCityMeta.displayName} · VIP 24/7 Live Video Feeds Active`
-                      : `${activeCityMeta.displayName} · Basic Tier (5-Minute Still Snapshots)`}
-                  </span>
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                  <span>{`${activeCityMeta.displayName} · 24/7 Live Video Feeds · Free for Everyone`}</span>
                   <span className="px-2 py-0.5 rounded-full bg-neutral-800 border border-neutral-700 text-neutral-200 font-mono text-[10px]">
                     ✦ Subscribed Partner Network
                   </span>
@@ -749,9 +702,7 @@ export default function App() {
                 </h1>
 
                 <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed max-w-3xl">
-                  {isPremiumActive
-                    ? `Streaming continuous real-time video feeds across ${selectedCity} (${activeCityMeta.popularDistricts?.slice(0, 3).join(', ')}). Check door lines, crowd density, and exclusive VIP deals.`
-                    : `Basic tier shows camera still photos updated every 5 minutes. Activate Free Bar Tap VIP ($0/mo) for 24/7 live video streaming!`}
+                  {`Streaming continuous real-time video feeds across ${selectedCity} (${activeCityMeta.popularDistricts?.slice(0, 3).join(', ')}). Check door lines, crowd density, and exclusive deals.`}
                 </p>
 
                 {/* Quick stats row */}
@@ -836,7 +787,6 @@ export default function App() {
               bars={cityBars}
               onSelectBarStream={(bar) => setLiveStreamBar(bar)}
               activeStreamBarId={liveStreamBar?.id}
-              isPremium={isPremiumActive}
               onOpenRelayModal={() => setIsRelayNetworkOpen(true)}
               currentCity={selectedCity}
             />
@@ -1001,8 +951,7 @@ export default function App() {
                       onOpenLiveStream={() => setLiveStreamBar(bar)}
                       onOpenProfile={() => setProfileBar(bar)}
                       hasExclusiveDeal={dealsBarIds.has(bar.id)}
-                      isPremium={isPremiumActive}
-                    />
+                            />
                   ))}
                 </div>
               )}
@@ -1022,16 +971,13 @@ export default function App() {
             onOpenLiveStream={(b) => setLiveStreamBar(b)}
             currentUser={currentUser}
             onOpenAuth={() => handleOpenAuth('user')}
-            isPremium={isPremiumActive}
           />
         )}
 
-        {/* VIEW 3: VIP DEALS EXPLORER */}
+        {/* VIEW 3: DEALS EXPLORER */}
         {activeView === 'deals' && (
           <ExclusiveDealsExplorer
             bars={barsWithDistance}
-            isPremium={isPremiumActive}
-            onOpenPremiumModal={() => setIsPremiumModalOpen(true)}
             onOpenBarProfile={(bar) => setProfileBar(bar)}
             onOpenLiveStream={(bar) => setLiveStreamBar(bar)}
             currentCity={selectedCity}
@@ -1098,15 +1044,6 @@ export default function App() {
               <Compass className="w-3.5 h-3.5 text-neutral-300" />
               <span>{selectedCity} Guide</span>
             </button>
-            <button
-              onClick={() => {
-                setIsPremiumModalOpen(true);
-              }}
-              className="hover:text-white cursor-pointer flex items-center gap-1 text-neutral-200"
-            >
-              <Crown className="w-3 h-3" />
-              <span>{isPremiumActive ? 'VIP Tier Active (Free)' : 'Unlock Free VIP Tier'}</span>
-            </button>
           </div>
         </div>
       </footer>
@@ -1125,8 +1062,6 @@ export default function App() {
             canWriteReview={!!currentUser}
             reviewerName={currentUser?.name}
             onRequestSignIn={() => handleOpenAuth('user')}
-          isPremium={isPremiumActive}
-          onOpenPremium={() => setIsPremiumModalOpen(true)}
           onOpenRelayModal={() => setIsRelayNetworkOpen(true)}
           onOpenOwnerPortalForBar={(barId) => {
             setProfileBar(null);
@@ -1153,8 +1088,6 @@ export default function App() {
             setLiveStreamBar(null);
             setProfileBar(bar);
           }}
-          isPremium={isPremiumActive}
-          onOpenPremium={() => setIsPremiumModalOpen(true)}
           onOpenRelayModal={() => setIsRelayNetworkOpen(true)}
         />
       )}
@@ -1198,19 +1131,9 @@ export default function App() {
         }}
         onSignOutUser={handleSignOutUser}
         onSignOutOwner={handleSignOutOwner}
-        onOpenPremiumModal={() => setIsPremiumModalOpen(true)}
         onOpenBusinessPlatform={() => setViewMode('business_platform')}
         initialTab={authModalTab}
         bars={bars}
-      />
-
-      {/* Free VIP Account Tier Modal */}
-      <PremiumModal
-        isOpen={isPremiumModalOpen}
-        onClose={() => setIsPremiumModalOpen(false)}
-        currentUser={currentUser}
-        onActivateVip={handleActivateFreeVip}
-        onOpenAuth={() => handleOpenAuth('user')}
       />
     </div>
   );

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Camera,
   Clock,
   Crown,
   ExternalLink,
@@ -27,7 +26,6 @@ interface BarCardProps {
   onOpenProfile: () => void;
   onOpenLiveStream: () => void;
   hasExclusiveDeal?: boolean;
-  isPremium?: boolean;
 }
 
 export const BarCard: React.FC<BarCardProps> = ({
@@ -39,7 +37,6 @@ export const BarCard: React.FC<BarCardProps> = ({
   onOpenProfile,
   onOpenLiveStream,
   hasExclusiveDeal,
-  isPremium = false,
 }) => {
   const [imageError, setImageError] = useState(false);
   const featuredSpecial = bar.drinkSpecials.find((s) => s.featured) || bar.drinkSpecials[0];
@@ -76,17 +73,10 @@ export const BarCard: React.FC<BarCardProps> = ({
 
         {/* Live Cam or Still Photo Indicator */}
         <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
-          {isPremium ? (
-            <span className="flex items-center gap-1.5 px-2.5 py-1 bg-red-600/90 text-white rounded-md text-[11px] font-bold tracking-wider uppercase backdrop-blur-sm shadow-sm animate-pulse">
-              <Radio className="w-3 h-3" />
-              LIVE FEED
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 px-2.5 py-1 bg-neutral-950/90 text-neutral-200 rounded-md text-[10px] font-mono font-bold tracking-wider uppercase backdrop-blur-sm border border-neutral-700">
-              <Camera className="w-3 h-3 text-neutral-300" />
-              PHOTO · UPDATES 5M
-            </span>
-          )}
+          <span className="flex items-center gap-1.5 px-2.5 py-1 bg-red-600/90 text-white rounded-md text-[11px] font-bold tracking-wider uppercase backdrop-blur-sm shadow-sm animate-pulse">
+            <Radio className="w-3 h-3" />
+            LIVE FEED
+          </span>
 
           <span className="px-2 py-0.5 bg-black/70 text-neutral-200 rounded text-[11px] font-mono backdrop-blur-sm border border-white/10">
             {bar.cameras.length} Cam{bar.cameras.length > 1 ? 's' : ''}
@@ -136,11 +126,11 @@ export const BarCard: React.FC<BarCardProps> = ({
             onOpenLiveStream();
           }}
           className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px] cursor-pointer z-10"
-          aria-label={isPremium ? `Watch live feed for ${bar.name}` : `View 5-min snapshot for ${bar.name}`}
+          aria-label={`Watch live feed for ${bar.name}`}
         >
           <span className="px-4 py-2 bg-copper text-ink font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
-            {isPremium ? <Radio className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
-            {isPremium ? 'Tap In To Stream Live' : 'Tap In (5-Min Snapshot)'}
+            <Radio className="w-4 h-4" />
+            Tap In To Stream Live
           </span>
         </button>
 
@@ -207,7 +197,7 @@ export const BarCard: React.FC<BarCardProps> = ({
             </div>
           </div>
 
-          {/* Bar Title & VIP Deal Tag */}
+          {/* Bar Title & Deal Tag */}
           <div className="flex items-start justify-between gap-2 min-w-0">
             <h3 className="text-lg font-bold text-white group-hover:text-neutral-200 transition-colors tracking-tight truncate">
               {bar.name}
@@ -215,7 +205,7 @@ export const BarCard: React.FC<BarCardProps> = ({
             {hasExclusiveDeal && (
               <span className="px-1.5 py-0.5 rounded bg-neutral-800 border border-neutral-700 text-neutral-200 text-[10px] font-bold font-mono flex items-center gap-1 shrink-0">
                 <Crown className="w-2.5 h-2.5 fill-tan" />
-                VIP DEAL
+                DEAL
               </span>
             )}
           </div>
