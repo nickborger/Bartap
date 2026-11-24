@@ -1,5 +1,12 @@
 import { BarLocation } from '../types.ts';
-import hubTaproomImage from '../assets/images/hub_feather_oaks_taproom.jpg';
+import { bundledImageRef } from './bundledImages.ts';
+
+/*
+ * BUILT-IN SEED DATA
+ * Bars now live in the Firestore `bars` collection and are managed from the in-app Admin screen.
+ * This file is only used (1) to fill an empty `bars` collection the first time an admin signs in,
+ * and (2) as a fallback so the app is never empty before that happens.
+ */
 
 // Weekly hours from thehubatfeatheroaks.com (closed Monday and Tuesday).
 // Index matches Date.getDay(): 0 = Sunday ... 6 = Saturday.
@@ -15,7 +22,7 @@ const HUB_WEEKLY_HOURS: (string | null)[] = [
 
 function hoursForToday(weekly: (string | null)[]): string {
   const today = weekly[new Date().getDay()];
-  return today ?? 'Closed today (open Wed – Sun)';
+  return today ?? 'Closed today';
 }
 
 const HUB_SLUG = 'hub-at-feather-oaks';
@@ -64,7 +71,11 @@ export const INITIAL_TALLAHASSEE_BARS: BarLocation[] = [
     rating: 0,
     totalReviews: 0,
     category: 'Beer Garden',
-    image: hubTaproomImage,
+    image: bundledImageRef('hub_feather_oaks_taproom'),
+    weeklyHours: HUB_WEEKLY_HOURS.map((h) => h ?? ''),
+    priceLevel: '',
+    isActive: true,
+    market: 'Tallahassee',
     tappedInCount: 0,
     features: [
       'Tasting Bar(n) with 18 Draft Taps',

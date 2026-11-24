@@ -112,6 +112,17 @@ export interface BarLocation {
   activeFlashDeal?: FlashDealState;
   staff?: StaffMember[];
   auditLog?: AuditLogItem[];
+  // Admin-managed listing fields (bars live in Firestore bars/{barId})
+  /** Opening hours per weekday, index 0 = Sunday ... 6 = Saturday. Empty string = closed. */
+  weeklyHours?: string[];
+  /** Local date (YYYY-MM-DD) an owner last overrode hoursToday; the override expires after that day. */
+  hoursTodaySetOn?: string;
+  /** '$' to '$$$$' */
+  priceLevel?: string;
+  /** false = hidden from patrons (deactivated by an admin). Missing = active. */
+  isActive?: boolean;
+  /** Partner market the bar is listed under (a SUPPORTED_CITIES name). Defaults to city. */
+  market?: string;
 }
 
 export interface VenueEvent {
@@ -175,7 +186,7 @@ export interface UserProfile {
   savedBarIds: string[];
   tappedBarIds: string[];
   joinedDate: string;
-  role?: 'user' | 'owner';
+  role?: 'user' | 'owner' | 'admin';
   ownedBarIds?: string[];
 }
 

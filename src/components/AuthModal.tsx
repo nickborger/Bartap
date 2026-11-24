@@ -143,6 +143,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setRequestError(null);
     try {
       const targetBar = bars.find((b) => b.id === ownerBarIdInput) || bars[0];
+      if (!targetBar) throw new Error('No bars are listed yet.');
       await requestOwnerAccess(currentUser.id, {
         barId: targetBar.id,
         name: ownerNameInput.trim() || currentUser.name,

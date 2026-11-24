@@ -18,7 +18,6 @@ import {
   Users,
 } from 'lucide-react';
 import { BarLocation, BusinessOwnerProfile, Review, UserProfile } from './types.ts';
-import { ALL_PARTNER_BARS } from './data/bars.ts';
 import { ALL_EXCLUSIVE_DEALS } from './data/exclusiveDeals.ts';
 import {
   SUPPORTED_CITIES,
@@ -42,6 +41,7 @@ import { AuthModal } from './components/AuthModal.tsx';
 import { PremiumModal } from './components/PremiumModal.tsx';
 import { CloudRelayNetworkModal } from './components/CloudRelayNetworkModal.tsx';
 import { BusinessOwnerPlatform } from './components/BusinessOwnerPlatform.tsx';
+import { AdminPanel } from './components/AdminPanel.tsx';
 import { getRedirectResult, onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from './firebase.ts';
@@ -56,13 +56,16 @@ import {
   toUserProfile,
 } from './services/authService.ts';
 import {
-  BarOverrides,
+  BarsState,
+  EMPTY_BARS_STATE,
   ReviewsByBar,
   addReview,
   mergeBars,
-  saveBarOverride,
-  subscribeToBarOverrides,
+  resolveStoredBars,
+  saveOwnerBarEdits,
+  subscribeToBars,
   subscribeToReviews,
+  subscribeToSeedMarker,
 } from './services/barDataService.ts';
 
 const STORAGE_KEY_TAPPED = 'bartap_tapped_bars'; // guest (signed-out) tap-ins only
@@ -77,13 +80,35 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false);
   const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
   const [reviewsByBar, setReviewsByBar] = useState<ReviewsByBar>({});
-  const [barOverrides, setBarOverrides] = useState<BarOverrides>({});
+  const [barsState, setBarsState] = useState<BarsState>(EMPTY_BARS_STATE);
+  const [barsSeeded, setBarsSeeded] = useState<boolean | null>(null);
+  // Re-render at midnight-ish so "today's hours" roll over without a reload
+  const [dayKey, setDayKey] = useState(() => new Date().toDateString());
 
-  // Bars = built-in data + owner edits (Firestore) + shared reviews (Firestore)
-  const bars = useMemo(
-    () => mergeBars(ALL_PARTNER_BARS, barOverrides, reviewsByBar),
-    [barOverrides, reviewsByBar]
+  // Bars come from the Firestore `bars` collection (managed in the Admin screen).
+  // Until an admin copies the built-in bars over, the built-in list is shown instead.
+  // If Firestore can't be reached for 6 seconds, show the built-in bars so the app isn't blank.
+  const [barsTimedOut, setBarsTimedOut] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setBarsTimedOut(true), 6000);
+    return () => window.clearTimeout(t);
+  }, []);
+  const { bars: storedBars, usingBuiltIn } = useMemo(
+    () =>
+      resolveStoredBars(
+        !barsState.loaded && barsTimedOut ? { ...barsState, loaded: true, error: true } : barsState,
+        barsSeeded
+      ),
+    [barsState, barsSeeded, barsTimedOut]
   );
+
+  // Every bar incl. hidden ones (Admin + owners) and the bars patrons see (active only)
+  const allBars = useMemo(
+    () => mergeBars(storedBars, reviewsByBar),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [storedBars, reviewsByBar, dayKey]
+  );
+  const bars = useMemo(() => allBars.filter((b) => b.isActive !== false), [allBars]);
 
   // User Profile (Patron) — comes from Firestore users/{uid}
   const currentUser = useMemo<UserProfile | null>(
@@ -93,12 +118,15 @@ export default function App() {
 
   // Business Owner Profile — only when users/{uid} has role "owner" and ownedBarIds
   const currentBusinessOwner = useMemo<BusinessOwnerProfile | null>(
-    () => (authUid && userDoc ? toBusinessOwner(authUid, userDoc, ALL_PARTNER_BARS) : null),
-    [authUid, userDoc]
+    () => (authUid && userDoc ? toBusinessOwner(authUid, userDoc, allBars) : null),
+    [authUid, userDoc, allBars]
   );
 
-  // Active Global View Mode: 'patron' or 'business_platform'
-  const [viewMode, setViewMode] = useState<'patron' | 'business_platform'>('patron');
+  // Admin — only when users/{uid} has role "admin" (set once in the Firebase console)
+  const isAdmin = !!authUid && userDoc?.role === 'admin';
+
+  // Active Global View Mode: 'patron', 'business_platform' or 'admin'
+  const [viewMode, setViewMode] = useState<'patron' | 'business_platform' | 'admin'>('patron');
   const [authModalTab, setAuthModalTab] = useState<'user' | 'business'>('user');
   const [pendingBusinessLogin, setPendingBusinessLogin] = useState(false);
 
@@ -211,12 +239,14 @@ export default function App() {
     const unsubReviews = subscribeToReviews(setReviewsByBar, (err) =>
       console.error('Reviews listener error:', err)
     );
-    const unsubBars = subscribeToBarOverrides(setBarOverrides, (err) =>
-      console.error('Bar updates listener error:', err)
-    );
+    const unsubBars = subscribeToBars(setBarsState);
+    const unsubSeed = subscribeToSeedMarker(setBarsSeeded);
+    const timer = window.setInterval(() => setDayKey(new Date().toDateString()), 60_000);
     return () => {
       unsubReviews();
       unsubBars();
+      unsubSeed();
+      window.clearInterval(timer);
     };
   }, []);
 
@@ -249,6 +279,13 @@ export default function App() {
       setViewMode('patron');
     }
   }, [authReady, currentBusinessOwner, viewMode]);
+
+  // Non-admins can never stay on the Admin screen
+  useEffect(() => {
+    if (authReady && !isAdmin && viewMode === 'admin' && (!authUid || userDoc)) {
+      setViewMode('patron');
+    }
+  }, [authReady, isAdmin, viewMode, authUid, userDoc]);
 
   // Guest tap-ins stay on this device
   useEffect(() => {
@@ -295,9 +332,13 @@ export default function App() {
       window.alert('You can only edit venues linked to your owner account.');
       return;
     }
-    const baseBar = ALL_PARTNER_BARS.find((b) => b.id === updatedBar.id);
-    if (!baseBar) return;
-    saveBarOverride(currentBusinessOwner.id, baseBar, updatedBar).catch((err) =>
+    const currentBar = allBars.find((b) => b.id === updatedBar.id);
+    if (!currentBar) return;
+    if (usingBuiltIn && !barsState.legacyOverrides[updatedBar.id]) {
+      window.alert('This venue is still being set up. Ask the Bar Tap admin to finish moving bars into the database, then try again.');
+      return;
+    }
+    saveOwnerBarEdits(currentBusinessOwner.id, currentBar, updatedBar).catch((err) =>
       reportSaveError('your venue changes', err)
     );
   };
@@ -384,13 +425,20 @@ export default function App() {
   // Partner venues in active city
   const cityBars = useMemo(() => {
     const norm = selectedCity.toLowerCase().trim();
-    return barsWithDistance.filter(
-      (b) =>
-        b.city.toLowerCase() === norm ||
-        norm.startsWith(b.city.toLowerCase()) ||
-        b.city.toLowerCase().startsWith(norm)
-    );
+    return barsWithDistance.filter((b) => {
+      const market = (b.market || b.city || '').toLowerCase();
+      return market === norm || norm.startsWith(market) || market.startsWith(norm);
+    });
   }, [barsWithDistance, selectedCity]);
+
+  // The market's listed neighborhoods plus any new ones admins used for bars
+  const cityNeighborhoods = useMemo(
+    () =>
+      Array.from(
+        new Set([...activeCityMeta.neighborhoods, ...cityBars.map((b) => b.neighborhood).filter(Boolean)])
+      ),
+    [activeCityMeta, cityBars]
+  );
 
   const neighborhoodCounts = useMemo(() => {
     const counts: Record<string, number> = { all: cityBars.length };
@@ -444,9 +492,9 @@ export default function App() {
     const normCity = selectedCity.toLowerCase().trim();
     result = result.filter(
       (b) =>
-        b.city.toLowerCase() === normCity ||
-        normCity.startsWith(b.city.toLowerCase()) ||
-        b.city.toLowerCase().startsWith(normCity)
+        (b.market || b.city).toLowerCase() === normCity ||
+        normCity.startsWith((b.market || b.city).toLowerCase()) ||
+        (b.market || b.city).toLowerCase().startsWith(normCity)
     );
 
     if (activeView === 'deals') {
@@ -524,14 +572,49 @@ export default function App() {
   const isPremiumActive = !!currentUser?.isPremium;
 
   // =========================================================================
+  // VIEW MODE: ADMIN (role "admin" only; writes are also enforced by firestore.rules)
+  // =========================================================================
+  if (viewMode === 'admin' && isAdmin && authUid) {
+    return (
+      <div className="min-h-[100dvh] w-full bg-neutral-950 text-neutral-100 flex flex-col font-sans">
+        <header className="sticky top-0 z-30 bg-neutral-950/95 backdrop-blur border-b border-neutral-800">
+          <div className="max-w-4xl mx-auto px-3 sm:px-5 py-3 flex items-center justify-between gap-2">
+            <span className="text-lg font-black tracking-tight text-neutral-100">
+              Bar <span className="text-copper">Tap</span> <span className="text-xs font-bold text-neutral-400 ml-1">Admin</span>
+            </span>
+            <button
+              onClick={() => setViewMode('patron')}
+              className="px-3 py-1.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-xs font-bold text-neutral-100 cursor-pointer"
+            >
+              Back to the app
+            </button>
+          </div>
+        </header>
+        <main className="flex-1 w-full px-3 sm:px-5 py-4 sm:py-6">
+          <AdminPanel
+            adminUid={authUid}
+            bars={usingBuiltIn ? [] : storedBars}
+            usingBuiltIn={usingBuiltIn}
+            legacyOverrides={barsState.legacyOverrides}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // =========================================================================
   // VIEW MODE: DEDICATED BUSINESS OWNER PLATFORM
   // =========================================================================
-  if (viewMode === 'business_platform' && currentBusinessOwner) {
+  if (
+    viewMode === 'business_platform' &&
+    currentBusinessOwner &&
+    allBars.some((b) => currentBusinessOwner.managedBarIds.includes(b.id))
+  ) {
     return (
       <div className="min-h-[100dvh] w-full bg-neutral-950 text-neutral-100 flex flex-col font-sans">
         <BusinessOwnerPlatform
           owner={currentBusinessOwner}
-          bars={bars.filter((b) => currentBusinessOwner.managedBarIds.includes(b.id))}
+          bars={allBars.filter((b) => currentBusinessOwner.managedBarIds.includes(b.id))}
           onUpdateBar={handleUpdateManagedBar}
           onSignOut={handleSignOutOwner}
           onPreviewAsPatron={handlePreviewAsPatron}
@@ -613,6 +696,7 @@ export default function App() {
         allBars={barsWithDistance}
         isCityModalOpen={isCityModalOpen}
         onSetCityModalOpen={setIsCityModalOpen}
+        onOpenAdmin={isAdmin ? () => setViewMode('admin') : undefined}
       />
 
       {/* Free VIP Tier Notification Bar (for Basic Users) */}
@@ -714,7 +798,7 @@ export default function App() {
                 </span>
                 {SUPPORTED_CITIES.map((city) => {
                   const isCurrent = city.name.toLowerCase() === selectedCity.toLowerCase();
-                  const count = bars.filter((b) => b.city.toLowerCase() === city.name.toLowerCase()).length;
+                  const count = bars.filter((b) => (b.market || b.city).toLowerCase() === city.name.toLowerCase()).length;
                   return (
                     <button
                       key={city.id}
@@ -771,7 +855,7 @@ export default function App() {
               filterNoCoverOnly={filterNoCoverOnly}
               onToggleNoCover={() => setFilterNoCoverOnly(!filterNoCoverOnly)}
               neighborhoodCounts={neighborhoodCounts}
-              availableNeighborhoods={activeCityMeta.neighborhoods}
+              availableNeighborhoods={cityNeighborhoods}
               hasUserLocation={!!userCoords}
               onSelectCity={handleSelectCity}
               onOpenCityModal={() => setIsCityModalOpen(true)}
@@ -802,7 +886,7 @@ export default function App() {
 
                   if (matchedOtherCity) {
                     const otherCityBars = bars.filter(
-                      (b) => b.city.toLowerCase() === matchedOtherCity.name.toLowerCase()
+                      (b) => (b.market || b.city).toLowerCase() === matchedOtherCity.name.toLowerCase()
                     );
                     return (
                       <div className="p-8 sm:p-12 text-center rounded-3xl bg-neutral-900 border border-neutral-700 space-y-4 shadow-xl">
@@ -1076,6 +1160,7 @@ export default function App() {
       )}
 
       {/* Bar Owner Management Portal Modal (Fallback/Quick Trigger) */}
+      {bars.length > 0 && (
       <BarOwnerPortalModal
         isOpen={isOwnerPortalOpen}
         onClose={() => setIsOwnerPortalOpen(false)}
@@ -1087,6 +1172,7 @@ export default function App() {
           handleOpenBusinessPlatform();
         }}
       />
+      )}
 
       {/* Tallahassee Cloud Camera Relay Network Diagnostics Modal */}
       <CloudRelayNetworkModal

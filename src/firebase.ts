@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { initializeFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 
 // Firebase web config for the Bar Tap project.
@@ -24,6 +25,12 @@ googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 // ignoreUndefinedProperties lets us save objects that have optional (undefined) fields.
 export const db = initializeFirestore(app, { ignoreUndefinedProperties: true });
+
+// Cloud Storage is optional: bar photos upload here when Storage is enabled in the console.
+export const storage = getStorage(app);
+// Give up quickly when Storage isn't enabled; the app then saves a compressed photo instead.
+storage.maxUploadRetryTime = 10_000;
+storage.maxOperationRetryTime = 10_000;
 
 // Analytics only runs in browsers that support it (not in some iframes / private modes).
 export let analytics: Analytics | null = null;

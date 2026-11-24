@@ -34,6 +34,8 @@ interface HeaderProps {
   allBars: BarLocation[];
   isCityModalOpen?: boolean;
   onSetCityModalOpen?: (open: boolean) => void;
+  /** Shown only to accounts with role "admin" */
+  onOpenAdmin?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -55,6 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
   allBars,
   isCityModalOpen,
   onSetCityModalOpen,
+  onOpenAdmin,
 }) => {
   return (
     <header className="sticky top-0 z-30 w-full bg-neutral-950/90 backdrop-blur-md border-b border-neutral-800/80">
@@ -173,6 +176,19 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="w-2 h-2 rounded-full bg-tan animate-pulse" />
               <Server className="w-3.5 h-3.5 text-neutral-300" />
               <span>Relays (44)</span>
+            </button>
+          )}
+
+          {/* Admin screen (admins only) */}
+          {onOpenAdmin && (
+            <button
+              onClick={onOpenAdmin}
+              data-testid="open-admin"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-copper hover:bg-tan text-ink text-xs font-black transition cursor-pointer min-h-[36px] whitespace-nowrap"
+              title="Admin: add and manage bars"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+              <span>Admin</span>
             </button>
           )}
 

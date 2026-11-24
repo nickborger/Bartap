@@ -25,22 +25,22 @@ import { BarLocation, BusinessOwnerProfile, UserProfile } from '../types.ts';
  * Firestore layout for users/{uid}
  *
  *   name, email, avatar      - shown in the app (user can edit)
- *   role                     - 'user' | 'owner'          (LOCKED: set in Firebase console)
- *   ownedBarIds              - string[] of bar ids       (LOCKED: set in Firebase console)
+ *   role                     - 'user' | 'owner' | 'admin' (LOCKED: admins set user/owner in the
+ *                              app's Admin screen; 'admin' only in the Firebase console)
+ *   ownedBarIds              - string[] of bar ids       (LOCKED: set from the Admin screen)
  *   isPremium                - paid / granted premium   (LOCKED: set in Firebase console)
  *   freeVip                  - user switched on the free VIP tier (user can set)
  *   ownerTitle, businessName, primaryBarId - owner display info (user can edit)
  *   savedBarIds, tappedBarIds - the user's own lists
  *   createdAt
  *
- * To make someone a bar owner: Firebase console > Firestore > users > (their uid)
- * set role = "owner" and ownedBarIds = ["hub-at-feather-oaks"] (bar ids from src/data).
+ * To make someone a bar owner: Admin screen > Owners > link by email.
  */
 export interface UserDoc {
   name: string;
   email: string;
   avatar: string;
-  role: 'user' | 'owner';
+  role: 'user' | 'owner' | 'admin';
   ownedBarIds: string[];
   isPremium: boolean;
   freeVip?: boolean;
@@ -177,7 +177,7 @@ export function toUserProfile(uid: string, d: UserDoc): UserProfile {
     savedBarIds: d.savedBarIds || [],
     tappedBarIds: d.tappedBarIds || [],
     joinedDate: formatMonthYear(d.createdAt),
-    role: d.role === 'owner' ? 'owner' : 'user',
+    role: d.role === 'admin' ? 'admin' : d.role === 'owner' ? 'owner' : 'user',
     ownedBarIds: d.ownedBarIds || [],
   };
 }
@@ -189,7 +189,7 @@ export function toBusinessOwner(
   bars: BarLocation[]
 ): BusinessOwnerProfile | null {
   const owned = (d.ownedBarIds || []).filter((id) => bars.some((b) => b.id === id));
-  if (d.role !== 'owner' || owned.length === 0) return null;
+  if ((d.role !== 'owner' && d.role !== 'admin') || owned.length === 0) return null;
   const primaryBarId =
     d.primaryBarId && owned.includes(d.primaryBarId) ? d.primaryBarId : owned[0];
   const primaryBar = bars.find((b) => b.id === primaryBarId);
