@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Camera,
   ExternalLink,
@@ -6,17 +6,16 @@ import {
   Globe,
   MapPin,
   MessageSquare,
+  MessageSquareOff,
   Radio,
-  Send,
-  Server,
-  Sparkles,
   Star,
-  Users,
   X,
 } from 'lucide-react';
 import { BarLocation, CameraAngle } from '../types.ts';
 import { LiveCameraCanvas } from './LiveCameraCanvas.tsx';
 import { TapInButton } from './TapInButton.tsx';
+import { ChatActionSheet, ChatComposer, ChatOverlay, ChatPanel, ChatViewer, useLiveChat } from './LiveChat.tsx';
+import type { ChatMessage } from '../services/chatService.ts';
 
 interface LiveFeedViewerModalProps {
   bar: BarLocation;
@@ -26,14 +25,9 @@ interface LiveFeedViewerModalProps {
   onToggleTapIn: () => void;
   onOpenProfile: () => void;
   onOpenRelayModal?: () => void;
-}
-
-interface ChatMessage {
-  id: string;
-  user: string;
-  text: string;
-  time: string;
-  isSelf?: boolean;
+  /** The signed-in person (null when signed out: they can read chat but not post). */
+  chatViewer: ChatViewer | null;
+  onRequestSignIn: () => void;
 }
 
 export const LiveFeedViewerModal: React.FC<LiveFeedViewerModalProps> = ({
@@ -44,47 +38,21 @@ export const LiveFeedViewerModal: React.FC<LiveFeedViewerModalProps> = ({
   onToggleTapIn,
   onOpenProfile,
   onOpenRelayModal,
+  chatViewer,
+  onRequestSignIn,
 }) => {
   const [selectedCamera, setSelectedCamera] = useState<CameraAngle>(bar.cameras[0]);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [inputMessage, setInputMessage] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'm1',
-      user: 'Jake_FSU',
-      text: 'Patio is buzzing tonight! Line took about 8 mins.',
-      time: '2m ago',
-    },
-    {
-      id: 'm2',
-      user: 'TaylorM',
-      text: 'Drink specials are live at the front bar 🔥',
-      time: '1m ago',
-    },
-    {
-      id: 'm3',
-      user: 'DJ_Marcus',
-      text: 'Live set starts at 10:30 PM, come through Tallahassee!',
-      time: 'Just now',
-    },
-  ]);
+  const chat = useLiveChat(bar, chatViewer);
+  const [openMessage, setOpenMessage] = useState<ChatMessage | null>(null);
+  const [showOverlay, setShowOverlay] = useState(true);
+
+  // Close the message menu if that message disappears (deleted, cleared or closing time).
+  useEffect(() => {
+    if (openMessage && !chat.messages.some((m) => m.id === openMessage.id)) setOpenMessage(null);
+  }, [chat.messages, openMessage]);
 
   if (!isOpen) return null;
-
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputMessage.trim()) return;
-
-    const newMsg: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      user: 'You',
-      text: inputMessage.trim(),
-      time: 'Just now',
-      isSelf: true,
-    };
-    setMessages((prev) => [...prev, newMsg]);
-    setInputMessage('');
-  };
 
   return (
     <div
@@ -160,6 +128,25 @@ export const LiveFeedViewerModal: React.FC<LiveFeedViewerModalProps> = ({
                 onFullscreenToggle={() => setIsFullscreen(!isFullscreen)}
                 onOpenRelayModal={onOpenRelayModal}
               />
+              {/* Phone: chat floats over the bottom of the video (Twitch-style) */}
+              <div className="lg:hidden">
+                {showOverlay && <ChatOverlay chat={chat} viewer={chatViewer} onOpenMessage={setOpenMessage} />}
+                <button
+                  type="button"
+                  onClick={() => setShowOverlay((v) => !v)}
+                  className="absolute right-2 top-11 z-10 p-1.5 rounded-lg bg-black/60 border border-neutral-700 text-neutral-200 cursor-pointer"
+                  aria-label={showOverlay ? 'Hide chat on video' : 'Show chat on video'}
+                  title={showOverlay ? 'Hide chat on video' : 'Show chat on video'}
+                  data-testid="chat-overlay-toggle"
+                >
+                  {showOverlay ? <MessageSquareOff className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Phone: type your chat message right under the video */}
+            <div className="lg:hidden" data-testid="chat-phone-composer">
+              <ChatComposer chat={chat} viewer={chatViewer} onRequestSignIn={onRequestSignIn} compact />
             </div>
 
             {/* Camera Angles Selection */}
@@ -211,59 +198,31 @@ export const LiveFeedViewerModal: React.FC<LiveFeedViewerModalProps> = ({
             </div>
           </div>
 
-          {/* Right Column: Live Crowd Chat & Venue Status */}
-          <div className="bg-neutral-900 border-t lg:border-t-0 lg:border-l border-neutral-800 flex flex-col min-h-[240px] lg:min-h-0 lg:h-full overflow-hidden">
-            <div className="p-3 bg-neutral-950/60 border-b border-neutral-800 flex items-center justify-between shrink-0">
-              <span className="text-xs font-semibold uppercase tracking-wider text-neutral-300 flex items-center gap-1.5">
-                <MessageSquare className="w-3.5 h-3.5 text-neutral-300" />
-                Live Patron Feed & Chat
-              </span>
-              <span className="text-[11px] font-mono text-neutral-200 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                LIVE
-              </span>
-            </div>
-
-            {/* Messages Scroll Area */}
-            <div className="flex-1 min-h-0 p-3 overflow-y-auto space-y-2.5 custom-scrollbar">
-              {messages.map((m) => (
-                <div
-                  key={m.id}
-                  className={`p-2.5 rounded-xl text-xs ${
-                    m.isSelf
-                      ? 'bg-neutral-800 border border-neutral-700 text-neutral-100 ml-3'
-                      : 'bg-neutral-950/70 border border-neutral-800/70 text-neutral-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span className="font-semibold text-white">{m.user}</span>
-                    <span className="text-[10px] text-neutral-500">{m.time}</span>
-                  </div>
-                  <p className="leading-snug">{m.text}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Send Chat Message Form */}
-            <form onSubmit={handleSendMessage} className="p-2.5 bg-neutral-950 border-t border-neutral-800 flex gap-2">
-              <input
-                type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Share live vibe or ask..."
-                className="flex-1 px-3 py-1.5 text-xs rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-copper"
-              />
-              <button
-                type="submit"
-                disabled={!inputMessage.trim()}
-                className="px-3 py-1.5 bg-copper hover:bg-tan disabled:opacity-40 text-ink font-bold rounded-xl text-xs transition cursor-pointer flex items-center justify-center min-h-[36px]"
-              >
-                <Send className="w-3.5 h-3.5" />
-              </button>
-            </form>
+          {/* Computer: chat panel next to the video */}
+          <div className="hidden lg:flex bg-neutral-900 border-l border-neutral-800 flex-col min-h-0 lg:h-full overflow-hidden">
+            <ChatPanel
+              bar={bar}
+              chat={chat}
+              viewer={chatViewer}
+              onRequestSignIn={onRequestSignIn}
+              onOpenMessage={setOpenMessage}
+            />
           </div>
         </div>
       </div>
+
+      {openMessage && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <ChatActionSheet
+            bar={bar}
+            message={openMessage}
+            chat={chat}
+            viewer={chatViewer}
+            onRequestSignIn={onRequestSignIn}
+            onClose={() => setOpenMessage(null)}
+          />
+        </div>
+      )}
     </div>
   );
 };

@@ -110,6 +110,12 @@ const PrivacyPolicy: React.FC = () => (
           Reviews you write: your ratings, your comments, any tags you pick, the date, and the display name shown
           with the review.
         </li>
+        <li>
+          Live chat messages you post next to a bar's live video: the message, the time, the bar, and the chat name
+          shown with it (your first name and last initial, or the bar's name for its owner). We also keep a small
+          record of when you last posted (for slow mode), whether a bar owner or admin muted you, people you have
+          blocked, and reports you send about a message.
+        </li>
       </List>
 
       <P>
@@ -155,6 +161,10 @@ const PrivacyPolicy: React.FC = () => (
       <List>
         <li>To sign you in and keep your account, saved bars and tap-ins working on any device.</li>
         <li>To show your reviews, and owners' replies to them, to other people using Bar Tap.</li>
+        <li>
+          To run live chat: show your messages to everyone watching that bar, hide messages from people you block,
+          and let owners and admins handle reports, delete messages and mute people.
+        </li>
         <li>To check and approve bar owner requests, and let owners manage their own bar's page.</li>
         <li>To show bars near you, if you allowed location.</li>
         <li>To keep Bar Tap safe: stop spam, abuse, cheating and misuse, and enforce our Terms of Use.</li>
@@ -177,6 +187,12 @@ const PrivacyPolicy: React.FC = () => (
           <B>Bar owners can see reviews of their bar</B> and reply to them publicly.
         </li>
         <li>
+          <B>Live chat is public.</B> Anyone watching a bar's live video can read its chat, including people who are
+          not signed in. They see your message and your chat name (first name and last initial), never your email.
+          The bar's owner and the Bar Tap admin can delete messages, see reports about messages in that bar, and
+          mute someone for the night. Who you block stays private.
+        </li>
+        <li>
           <B>Saved bars and tap-ins</B> are private to your account. A bar's total tap-in count may be shown, but not
           who tapped in.
         </li>
@@ -195,7 +211,8 @@ const PrivacyPolicy: React.FC = () => (
       <List>
         <li>
           <B>Google Firebase</B> (Authentication, Cloud Firestore database, Cloud Storage and Google Analytics for
-          Firebase) stores accounts, reviews, saved bars, owner information and bar photos, and runs sign-in.{' '}
+          Firebase) stores accounts, reviews, live chat messages, saved bars, owner information and bar photos, and
+          runs sign-in.{' '}
           <A href="https://firebase.google.com/support/privacy">Firebase privacy information</A>,{' '}
           <A href="https://policies.google.com/privacy">Google Privacy Policy</A>.
         </li>
@@ -267,6 +284,13 @@ const PrivacyPolicy: React.FC = () => (
         follow the law, settle a dispute or stop abuse. Analytics data is kept for the period set in Google
         Analytics and is not tied to your name or email.
       </P>
+      <P>
+        <B>Live chat messages are short-lived.</B> Each bar's chat clears at the bar's closing time each night (or at
+        4 AM if the bar has no posted hours). After that, messages are no longer shown and are deleted from our
+        database automatically, usually within a day. Slow-mode and mute records are cleared the same way. A
+        reported message is kept with its report until the admin reviews it, and we may keep records longer when we
+        need them to stop abuse or follow the law.
+      </P>
     </Section>
 
     <Section id="delete-account" title="7. Your choices and deleting your account">
@@ -277,6 +301,10 @@ const PrivacyPolicy: React.FC = () => (
         </li>
         <li>
           <B>Delete a review:</B> contact us with the bar's name and the review, and we will remove it.
+        </li>
+        <li>
+          <B>Delete a chat message or block someone:</B> tap any chat message. You can delete your own messages, and
+          report or block anyone else. Blocking hides their messages from you on every bar.
         </li>
         <li>
           <B>Delete your account and data:</B> email <Contact /> from the email address on your account, with the
@@ -417,6 +445,15 @@ const TermsOfUse: React.FC = () => (
         required to check everything posted, and reviews are the opinions of the people who wrote them, not of Bar
         Tap. To report a review or anything else, contact us at <Contact />.
       </P>
+      <P>
+        <B>Live chat.</B> You must be signed in to post in a bar's live chat, and the content rules above apply to
+        every message. Also: no links, phone numbers or email addresses, and one message every few seconds (slow
+        mode). Bar Tap filters some words automatically, which may hide or block a message. Anyone can tap a
+        message to report it or block the person who sent it. The bar's owner and the Bar Tap admin may delete
+        messages and mute someone in that bar's chat for the night, and we may limit or close accounts that keep
+        breaking the rules. Chat clears at the bar's closing time each night, so do not count on a message staying
+        up.
+      </P>
     </Section>
 
     <Section id="bar-owners" title="7. Extra terms for bar owners and managers">
@@ -434,6 +471,10 @@ const TermsOfUse: React.FC = () => (
         </li>
         <li>You keep your camera stream key private, and you tell us right away if it leaks.</li>
         <li>You reply to reviews professionally, and you do not offer rewards for reviews or post fake ones.</li>
+        <li>
+          Messages you post in your bar's live chat show with an Owner badge and speak for the bar. You use delete
+          and mute fairly, to enforce these Terms, and not to hide honest opinions you dislike.
+        </li>
         <li>
           You are responsible for your bar's cameras and content, and you will cover Bar Tap's costs if a claim
           against Bar Tap is caused by your cameras or content.

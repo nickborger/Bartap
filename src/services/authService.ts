@@ -45,6 +45,8 @@ export interface UserDoc {
   primaryBarId?: string;
   savedBarIds: string[];
   tappedBarIds: string[];
+  /** Live chat: people this user has blocked (their messages are hidden). */
+  blockedUids?: string[];
   createdAt?: Timestamp | null;
 }
 

@@ -36,6 +36,7 @@ import { MyBarsView } from './components/MyBarsView.tsx';
 import { ExclusiveDealsExplorer } from './components/ExclusiveDealsExplorer.tsx';
 import { BarOwnerPortalModal } from './components/BarOwnerPortalModal.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
+import type { ChatViewer } from './components/LiveChat.tsx';
 import { CloudRelayNetworkModal } from './components/CloudRelayNetworkModal.tsx';
 import { BusinessOwnerPlatform } from './components/BusinessOwnerPlatform.tsx';
 import { AdminPanel } from './components/AdminPanel.tsx';
@@ -121,6 +122,21 @@ export default function App() {
 
   // Admin — only when users/{uid} has role "admin" (set once in the Firebase console)
   const isAdmin = !!authUid && userDoc?.role === 'admin';
+
+  // Live chat: who is chatting (null = signed out, can read but not post)
+  const chatViewer = useMemo<ChatViewer | null>(
+    () =>
+      authUid && userDoc
+        ? {
+            uid: authUid,
+            name: userDoc.name || 'Bar Tap Patron',
+            role: userDoc.role === 'admin' ? 'admin' : userDoc.role === 'owner' ? 'owner' : 'user',
+            ownedBarIds: Array.isArray(userDoc.ownedBarIds) ? userDoc.ownedBarIds : [],
+            blockedUids: Array.isArray(userDoc.blockedUids) ? userDoc.blockedUids : [],
+          }
+        : null,
+    [authUid, userDoc]
+  );
 
   // Active Global View Mode: 'patron', 'business_platform' or 'admin'
   const [viewMode, setViewMode] = useState<'patron' | 'business_platform' | 'admin'>('patron');
@@ -1091,6 +1107,8 @@ export default function App() {
             setProfileBar(bar);
           }}
           onOpenRelayModal={() => setIsRelayNetworkOpen(true)}
+          chatViewer={chatViewer}
+          onRequestSignIn={() => handleOpenAuth('user')}
         />
       )}
 

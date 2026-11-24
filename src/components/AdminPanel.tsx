@@ -34,6 +34,8 @@ import {
 } from '../services/adminService.ts';
 import { resolveBarImage } from '../data/bundledImages.ts';
 import { AdminBarForm } from './AdminBarForm.tsx';
+import { AdminChatReports } from './AdminChatReports.tsx';
+import { ChatReport, subscribeToChatReports } from '../services/chatService.ts';
 import { Field, Section, dangerBtn, errorMessage, inputCls, primaryBtn, secondaryBtn } from './AdminUi.tsx';
 
 interface AdminPanelProps {
@@ -46,7 +48,7 @@ interface AdminPanelProps {
 }
 
 type View = { kind: 'list' } | { kind: 'add' } | { kind: 'edit'; barId: string } | { kind: 'cameras'; barId: string };
-type Tab = 'bars' | 'owners';
+type Tab = 'bars' | 'owners' | 'reports';
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ adminUid, bars, usingBuiltIn, legacyOverrides }) => {
   const [tab, setTab] = useState<Tab>('bars');
@@ -56,6 +58,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ adminUid, bars, usingBui
   const [busyId, setBusyId] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  const [reports, setReports] = useState<ChatReport[]>([]);
+  const [reportsError, setReportsError] = useState<string | null>(null);
+  useEffect(
+    () =>
+      subscribeToChatReports(
+        (list) => {
+          setReports(list);
+          setReportsError(null);
+        },
+        (err) => setReportsError(errorMessage(err))
+      ),
+    []
+  );
 
   const [owners, setOwners] = useState<AppUserSummary[]>([]);
   const [requests, setRequests] = useState<OwnerRequest[]>([]);
@@ -182,7 +198,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ adminUid, bars, usingBui
           </div>
         </div>
         <div className="flex bg-neutral-900 border border-neutral-800 rounded-xl p-1">
-          {(['bars', 'owners'] as Tab[]).map((t) => (
+          {(['bars', 'owners', 'reports'] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -190,7 +206,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ adminUid, bars, usingBui
                 tab === t ? 'bg-copper text-ink' : 'text-neutral-300 hover:text-neutral-100'
               }`}
             >
-              {t === 'bars' ? `Bars (${usingBuiltIn ? 0 : bars.length})` : `Owners${requests.length ? ` · ${requests.length} new` : ''}`}
+              {t === 'bars'
+                ? `Bars (${usingBuiltIn ? 0 : bars.length})`
+                : t === 'owners'
+                  ? `Owners${requests.length ? ` · ${requests.length} new` : ''}`
+                  : `Chat reports${reports.length ? ` · ${reports.length}` : ''}`}
             </button>
           ))}
         </div>
@@ -306,6 +326,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ adminUid, bars, usingBui
             </div>
           )}
         </>
+      ) : tab === 'reports' ? (
+        <AdminChatReports
+          adminUid={adminUid}
+          bars={bars}
+          reports={reports}
+          loadError={reportsError}
+          onNotice={flash}
+          onError={setError}
+        />
       ) : (
         <OwnersTab
           adminUid={adminUid}

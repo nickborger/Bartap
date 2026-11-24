@@ -149,6 +149,151 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(ownerEditableBarFields())
         && validCameraFields(request.resource.data);
+
+      // -------------------------------------------------------------
+      // Live chat: one room per bar, next to the live video.
+      // Anyone can read. You must be signed in to post. Messages carry
+      // expiresAt (the bar's closing time tonight); the app hides them
+      // after that and Firestore's TTL policy deletes them.
+      // -------------------------------------------------------------
+      match /chat/{msgId} {
+        allow read: if true;
+
+        allow create: if signedIn()
+          && request.resource.data.keys().hasOnly(['uid', 'name', 'text', 'role', 'createdAt', 'expiresAt'])
+          && request.resource.data.uid == request.auth.uid
+          && validChatName(request.resource.data.name)
+          && validChatText(request.resource.data.text)
+          && validChatRole(barId, request.resource.data.role)
+          && request.resource.data.createdAt == request.time
+          && validChatExpiry(request.resource.data.expiresAt)
+          && !isChatMuted(barId)
+          // Slow mode: the same write must stamp your chatUsers record with
+          // this message (that record's own rule enforces the gap).
+          && getAfter(chatUserPath(barId, request.auth.uid)).data.lastMsgId == msgId
+          && getAfter(chatUserPath(barId, request.auth.uid)).data.lastPostAt == request.time;
+
+        // Messages can't be edited.
+        allow update: if false;
+
+        // Your own message, or the bar's owner / an admin moderating.
+        allow delete: if signedIn()
+          && (isChatModerator(barId) || resource.data.uid == request.auth.uid);
+      }
+
+      // Per-person chat state in this bar: slow mode and "muted tonight".
+      match /chatUsers/{uid} {
+        allow read: if isSelf(uid) || isChatModerator(barId);
+
+        // Slow mode stamp, written together with each message you post.
+        allow create: if isSelf(uid)
+          && request.resource.data.keys().hasOnly(['lastPostAt', 'lastMsgId', 'expiresAt'])
+          && validSlowStamp(barId);
+        allow update: if isSelf(uid)
+          && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['lastPostAt', 'lastMsgId', 'expiresAt'])
+          && !(resource.data.get('mutedUntil', null) is timestamp
+               && resource.data.mutedUntil > request.time)
+          && (!('lastPostAt' in resource.data)
+              || request.time >= resource.data.lastPostAt + duration.value(5, 's'))
+          && validSlowStamp(barId);
+
+        // Owner / admin: mute for the night (or lift a mute).
+        allow create: if isChatModerator(barId) && !isSelf(uid)
+          && request.resource.data.keys().hasOnly(['mutedUntil', 'mutedBy', 'expiresAt'])
+          && validMute();
+        allow update: if isChatModerator(barId) && !isSelf(uid)
+          && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['mutedUntil', 'mutedBy', 'expiresAt'])
+          && validMute();
+
+        allow delete: if false;
+      }
+    }
+
+    // ---------------------------------------------------------------
+    // Live chat helpers
+    // ---------------------------------------------------------------
+    function chatUserPath(barId, uid) {
+      return /databases/$(database)/documents/bars/$(barId)/chatUsers/$(uid);
+    }
+
+    function isChatModerator(barId) {
+      return isAdmin() || ownsBar(barId);
+    }
+
+    function validChatName(n) {
+      return n is string && n.size() > 0 && n.size() <= 40;
+    }
+
+    // 1-300 characters, and no links (the app also filters slurs, emails
+    // and phone numbers before sending).
+    function validChatText(t) {
+      return t is string && t.size() > 0 && t.size() <= 300
+        && !t.lower().matches('.*(https?://|www[.]).*')
+        && !t.lower().matches('.*[a-z0-9-][.](com|net|org|io|app|gg|ly|xyz)([/ ].*)?');
+    }
+
+    // The copper owner badge and the admin badge can't be faked.
+    function validChatRole(barId, role) {
+      return role == 'user'
+        || (role == 'owner' && ownsBar(barId))
+        || (role == 'admin' && isAdmin());
+    }
+
+    // Closing time tonight: in the future, and at most 30 hours away.
+    function validChatExpiry(e) {
+      return e is timestamp
+        && e > request.time
+        && e <= request.time + duration.value(30, 'h');
+    }
+
+    function isChatMuted(barId) {
+      let path = chatUserPath(barId, request.auth.uid);
+      return exists(path)
+        && get(path).data.get('mutedUntil', null) is timestamp
+        && get(path).data.mutedUntil > request.time;
+    }
+
+    function validSlowStamp(barId) {
+      return request.resource.data.lastPostAt == request.time
+        && request.resource.data.lastMsgId is string
+        && existsAfter(/databases/$(database)/documents/bars/$(barId)/chat/$(request.resource.data.lastMsgId))
+        && validChatExpiry(request.resource.data.expiresAt);
+    }
+
+    function validMute() {
+      return request.resource.data.mutedUntil is timestamp
+        && request.resource.data.mutedUntil <= request.time + duration.value(30, 'h')
+        && request.resource.data.mutedBy == request.auth.uid
+        && request.resource.data.get('expiresAt', null) is timestamp
+        && request.resource.data.expiresAt <= request.time + duration.value(30, 'h');
+    }
+
+    // ---------------------------------------------------------------
+    // chatReports/{reportId}: "Report" on a chat message. Anyone signed
+    // in can report; only admins and that bar's owner can read or
+    // resolve reports. Reporters can't read reports back.
+    // ---------------------------------------------------------------
+    match /chatReports/{reportId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['barId', 'barName', 'messageId', 'reportedUid',
+              'reportedName', 'text', 'reason', 'reporterUid', 'status', 'createdAt'])
+        && request.resource.data.reporterUid == request.auth.uid
+        && request.resource.data.reportedUid != request.auth.uid
+        && request.resource.data.barId is string
+        && request.resource.data.barName is string && request.resource.data.barName.size() <= 120
+        && request.resource.data.messageId is string
+        && request.resource.data.reportedUid is string
+        && request.resource.data.reportedName is string && request.resource.data.reportedName.size() <= 40
+        && request.resource.data.text is string && request.resource.data.text.size() <= 300
+        && request.resource.data.reason in ['harassment', 'hate', 'sexual', 'spam', 'personal_info', 'other']
+        && request.resource.data.status == 'open'
+        && request.resource.data.createdAt == request.time;
+
+      allow read, delete: if isAdmin()
+        || (signedIn() && ownsBar(resource.data.barId));
+      allow update: if false;
     }
 
     // ---------------------------------------------------------------

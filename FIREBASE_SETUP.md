@@ -12,6 +12,10 @@ The Firebase config is in `src/firebase.ts`.
 | `bars/{barId}` | the full bar listing: name, address, `coordinates`, `market`, neighborhood, type, `weeklyHours`, phone, cover, `priceLevel`, features, drink specials, photo, cameras, `isActive`, plus owner edits (today's hours, events, deals, replies to reviews) | admins (everything); that bar's owner (live fields only: today's hours, cover, specials, events, deals, phone, website, tagline, cameras, replies) |
 | `config/seed` | marks that the built-in bars were copied into `bars` | admins |
 | `ownerRequests/{uid}` | "link my venue" requests from the Business Owner tab | the requester; admins approve/decline |
+| `bars/{barId}/chat/{msgId}` | live chat next to the video: `uid`, `name`, `text`, `role` (`user`/`owner`/`admin`), `createdAt`, `expiresAt` (the bar's closing time tonight) | signed-in users (one message every 5 seconds, no links, not while muted); delete: the writer, that bar's owner, admins |
+| `bars/{barId}/chatUsers/{uid}` | slow-mode stamp (`lastPostAt`) and "muted tonight" (`mutedUntil`, `mutedBy`), plus `expiresAt` | the user (slow-mode stamp only); that bar's owner and admins (mute) |
+| `chatReports/{id}` | chat messages people reported | any signed-in user creates; that bar's owner and admins read and delete |
+| `users/{uid}.blockedUids` | people this user blocked in chat | the user |
 
 Bars are no longer in the code. `src/data/bars.ts` only holds The Hub at Feather Oaks as **seed data**: until an
 admin presses **Copy built-in bars to Firestore** on the Admin screen, the app shows that built-in bar so it is
@@ -75,3 +79,29 @@ New Firebase projects need the pay-as-you-go **Blaze** plan to use Storage (it h
 
 There are no user tiers. Everyone gets live camera feeds, deals and vouchers. Older user documents may still
 have `isPremium` or `freeVip` fields from an earlier version; the app ignores them, so you can leave them or delete them.
+
+## Live chat (next to the live video)
+
+- One chat room per bar. Anyone can read it; people must be signed in to post. Names show as first name + last
+  initial ("Nick B."); a bar's owner posts under the bar's name with a copper **Owner** badge, admins get a
+  **Bar Tap** badge. The rules check these badges, so nobody can fake them.
+- **Slow mode:** one message every 5 seconds per person (enforced by the rules, not just the app).
+- **Filter:** the app refuses slurs, "kill yourself"-type messages, links, emails and phone numbers, and masks
+  strong swear words. The rules also refuse links. Word lists are in `src/utils/chatFilter.ts`.
+- **Tap any message** for Report, Block, and (owners/admins) Delete and **Mute until closing time**.
+  Owners and admins also get **Clear chat** at the top of the chat panel.
+- **Reports** show up in Admin > **Chat reports**, with Delete message, Mute and Dismiss.
+- **Clearing at closing time:** each message is saved with `expiresAt` = the bar's closing time tonight (from
+  its hours; 4 AM if it has none or is closed). The app hides messages after that time right away. To also
+  delete them from the database, turn on the two TTL policies below (one time).
+
+### One-time: turn on auto-delete (TTL) for chat
+
+1. Open https://console.cloud.google.com/firestore/databases and sign in with the same Google account.
+   At the top, make sure your Firebase project (gen-lang-client-...) is picked.
+2. Click **(default)**, then **Time-to-live** in the left menu, then **Create policy**.
+3. Collection group: `chat`. Timestamp field: `expiresAt`. Click **Create**.
+4. Click **Create policy** again. Collection group: `chatUsers`. Timestamp field: `expiresAt`. Click **Create**.
+5. Each policy takes about 10 minutes or more to switch on. When it says **Serving**, you're done.
+   Expired messages are usually deleted within 24 hours of closing time. Deletes count as normal Firestore
+   deletes, which fit in the free daily allowance for a small app.
