@@ -9,6 +9,7 @@ import {
   X,
 } from 'lucide-react';
 import { BarLocation, BusinessOwnerProfile, UserProfile } from '../types.ts';
+import { MINIMUM_AGE, PRIVACY_PATH, TERMS_PATH } from '../legal/legalConfig.ts';
 import {
   friendlyAuthError,
   requestOwnerAccess,
@@ -319,6 +320,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </>
           )}
         </div>
+
+        <p className="text-center text-[11px] leading-relaxed text-neutral-500">
+          By continuing, you confirm you're {MINIMUM_AGE} or older and agree to Bar Tap's{' '}
+          <a href={TERMS_PATH} target="_blank" rel="noopener" className="text-neutral-300 underline hover:text-white">
+            Terms of Use
+          </a>{' '}
+          and{' '}
+          <a href={PRIVACY_PATH} target="_blank" rel="noopener" className="text-neutral-300 underline hover:text-white">
+            Privacy Policy
+          </a>
+          .
+        </p>
       </div>
     );
   };

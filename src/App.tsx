@@ -39,6 +39,7 @@ import { AuthModal } from './components/AuthModal.tsx';
 import { CloudRelayNetworkModal } from './components/CloudRelayNetworkModal.tsx';
 import { BusinessOwnerPlatform } from './components/BusinessOwnerPlatform.tsx';
 import { AdminPanel } from './components/AdminPanel.tsx';
+import { LegalLinks } from './components/LegalPages.tsx';
 import { getRedirectResult, onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from './firebase.ts';
@@ -1044,6 +1045,7 @@ export default function App() {
               <Compass className="w-3.5 h-3.5 text-neutral-300" />
               <span>{selectedCity} Guide</span>
             </button>
+            <LegalLinks linkClassName="hover:text-white" />
           </div>
         </div>
       </footer>
