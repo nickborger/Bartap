@@ -39,7 +39,7 @@ service cloud.firestore {
     function ownerEditableBarFields() {
       return ['hoursToday', 'hoursTodaySetOn', 'coverCharge', 'currentDJsBand',
               'crowdDensity', 'estimatedWaitMinutes', 'websiteUrl', 'phone',
-              'tagline', 'category', 'cameras', 'cameraPrivacy', 'drinkSpecials', 'events',
+              'tagline', 'category', 'cameras', 'cameraPrivacy', 'socialLinks', 'drinkSpecials', 'events',
               'websiteVerification', 'activeFlashDeal', 'staff', 'auditLog',
               'ownerReplies', 'updatedAt', 'updatedBy'];
     }
@@ -48,7 +48,24 @@ service cloud.firestore {
       return data.name is string && data.name.size() > 0 && data.name.size() <= 120
         && data.address is string
         && data.get('isActive', true) is bool
-        && validCameraFields(data);
+        && validCameraFields(data)
+        && validSocialLinks(data);
+    }
+
+    // Social media links on the bar page. Optional map with up to three
+    // full links, each in the one tidy shape the app saves (it turns handles
+    // like "@thehub" into these). Any other key or link shape is refused.
+    function validSocialLinks(data) {
+      return !('socialLinks' in data) || (
+        data.socialLinks is map
+        && data.socialLinks.keys().hasOnly(['instagram', 'tiktok', 'facebook'])
+        && (!('instagram' in data.socialLinks) || (data.socialLinks.instagram is string
+              && data.socialLinks.instagram.matches('https://www[.]instagram[.]com/[A-Za-z0-9._]{1,30}')))
+        && (!('tiktok' in data.socialLinks) || (data.socialLinks.tiktok is string
+              && data.socialLinks.tiktok.matches('https://www[.]tiktok[.]com/@[A-Za-z0-9._]{2,24}')))
+        && (!('facebook' in data.socialLinks) || (data.socialLinks.facebook is string
+              && data.socialLinks.facebook.size() <= 450
+              && data.socialLinks.facebook.matches('https://www[.]facebook[.]com/([A-Za-z0-9.-]{1,100}(/[A-Za-z0-9.-]{1,100}){0,3}|profile[.]php[?]id=[0-9]{1,25})'))));
     }
 
     // Camera relay: at most 16 cameras per bar, and the privacy note is a
@@ -148,7 +165,8 @@ service cloud.firestore {
       allow update: if signedIn() && ownsBar(barId)
         && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(ownerEditableBarFields())
-        && validCameraFields(request.resource.data);
+        && validCameraFields(request.resource.data)
+        && validSocialLinks(request.resource.data);
 
       // -------------------------------------------------------------
       // Live chat: one room per bar, next to the live video.
