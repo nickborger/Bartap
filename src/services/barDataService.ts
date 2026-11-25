@@ -15,6 +15,7 @@ import { db } from '../firebase.ts';
 import { BarLocation, Review } from '../types.ts';
 import { INITIAL_TALLAHASSEE_BARS } from '../data/bars.ts';
 import { resolveBarImage } from '../data/bundledImages.ts';
+import { displayableSocialLinks } from '../utils/socialLinks.ts';
 
 /**
  * Firestore layout
@@ -27,6 +28,7 @@ import { resolveBarImage } from '../data/bundledImages.ts';
  *                         created/edited by admins in the app; owners edit their own bar's
  *                         live fields (hours today, cover, specials, events...) plus
  *                         ownerReplies: { [reviewId]: reply }
+ *                         socialLinks: { instagram?, tiktok?, facebook? } (full links, owner + admin)
  *
  *   config/seed         - written once when the built-in bars (src/data/bars.ts) were copied
  *                         into `bars`. Until then the app shows the built-in bars as a fallback.
@@ -128,6 +130,7 @@ export const OWNER_EDITABLE_FIELDS = [
   'category',
   'cameras',
   'cameraPrivacy',
+  'socialLinks',
   'drinkSpecials',
   'events',
   'websiteVerification',
@@ -175,6 +178,7 @@ export function docToBar(id: string, raw: Record<string, unknown>): StoredBar {
     reviews: [],
     features: asArray(data.features),
     tappedInCount: asNumber(data.tappedInCount),
+    socialLinks: displayableSocialLinks(data.socialLinks),
     weeklyHours: Array.isArray(data.weeklyHours) ? (data.weeklyHours as string[]) : undefined,
     coordinates:
       data.coordinates && typeof (data.coordinates as { lat?: unknown }).lat === 'number'

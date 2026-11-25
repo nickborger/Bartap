@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
 import { db, storage } from '../firebase.ts';
-import { CameraAngle, DrinkSpecial } from '../types.ts';
+import { BarSocialLinks, CameraAngle, DrinkSpecial } from '../types.ts';
 import { BarOverride, StoredBar, builtInBars } from './barDataService.ts';
 
 /**
@@ -51,6 +51,8 @@ export interface BarListingInput {
   weeklyHours: string[]; // 7 entries, Sunday first, '' = closed
   phone: string;
   websiteUrl: string;
+  /** Full links only (the form turns handles into links first). Empty = no icon. */
+  socialLinks: BarSocialLinks;
   coverCharge: string;
   priceLevel: string;
   features: string[];
@@ -145,6 +147,7 @@ function listingFields(barId: string, input: BarListingInput, existing?: StoredB
     weeklyHours: input.weeklyHours.map((h) => h.trim()),
     phone: input.phone.trim(),
     websiteUrl: input.websiteUrl.trim(),
+    socialLinks: input.socialLinks || {},
     coverCharge: input.coverCharge.trim(),
     priceLevel: input.priceLevel,
     features: input.features.map((f) => f.trim()).filter(Boolean),
