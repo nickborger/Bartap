@@ -41,6 +41,7 @@ import { CloudRelayNetworkModal } from './components/CloudRelayNetworkModal.tsx'
 import { BusinessOwnerPlatform } from './components/BusinessOwnerPlatform.tsx';
 import { AdminPanel } from './components/AdminPanel.tsx';
 import { LegalLinks } from './components/LegalPages.tsx';
+import { AppLoadingScreen, WelcomePage } from './components/WelcomePage.tsx';
 import { getRedirectResult, onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from './firebase.ts';
@@ -358,11 +359,13 @@ export default function App() {
   // Sign Out Handlers (one Firebase account covers both patron and owner roles)
   const handleSignOutUser = () => {
     setViewMode('patron');
+    setIsAuthModalOpen(false);
     signOutUser().catch((err) => console.error('Sign out failed:', err));
   };
 
   const handleSignOutOwner = () => {
     setViewMode('patron');
+    setIsAuthModalOpen(false);
     signOutUser().catch((err) => console.error('Sign out failed:', err));
   };
 
@@ -571,6 +574,41 @@ export default function App() {
     dealsBarIds,
     tappedInBars,
   ]);
+
+  // =========================================================================
+  // SIGNED OUT: welcome / sign-in page first. The bar list only shows after sign-in.
+  // (/privacy, /terms and /go-live are separate pages in main.tsx and stay open to everyone.)
+  // =========================================================================
+  if (!authReady) {
+    return <AppLoadingScreen />;
+  }
+
+  if (!authUid) {
+    return (
+      <>
+        <WelcomePage authReady={authReady} onOpenAuth={handleOpenAuth} />
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          currentUser={null}
+          currentBusinessOwner={null}
+          authReady={authReady}
+          onSignedIn={(tab) => {
+            if (tab === 'business') {
+              setPendingBusinessLogin(true);
+            } else {
+              setIsAuthModalOpen(false);
+            }
+          }}
+          onSignOutUser={handleSignOutUser}
+          onSignOutOwner={handleSignOutOwner}
+          onOpenBusinessPlatform={() => setViewMode('business_platform')}
+          initialTab={authModalTab}
+          bars={bars}
+        />
+      </>
+    );
+  }
 
   // =========================================================================
   // VIEW MODE: ADMIN (role "admin" only; writes are also enforced by firestore.rules)

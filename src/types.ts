@@ -140,6 +140,18 @@ export interface BarLocation {
   market?: string;
   /** Camera relay privacy confirmation (owner-editable). */
   cameraPrivacy?: CameraPrivacy;
+  /**
+   * Social media links shown low on the bar page (owner- and admin-editable).
+   * Always full links in one tidy shape (see src/utils/socialLinks.ts); a missing key = no icon.
+   */
+  socialLinks?: BarSocialLinks;
+}
+
+/** A bar's social media pages. */
+export interface BarSocialLinks {
+  instagram?: string;
+  tiktok?: string;
+  facebook?: string;
 }
 
 export interface VenueEvent {
