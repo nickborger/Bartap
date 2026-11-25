@@ -11,6 +11,7 @@ import {
   normalizeSocialLink,
 } from '../utils/socialLinks.ts';
 import { BarSocialLinks } from '../types.ts';
+import { trackEvent } from '../services/analyticsService.ts';
 
 /** TikTok's note, drawn in the same thin-line style as the other icons (lucide has no TikTok icon). */
 export const TikTokIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -41,13 +42,15 @@ const ICONS: Record<SocialPlatform, React.FC<{ className?: string }>> = {
  * Links open in a new tab so Bar Tap stays open behind them.
  */
 export const SocialLinksRow: React.FC<{
+  /** When given, taps are counted in the bar's analytics (social / website). */
+  barId?: string;
   barName: string;
   socialLinks?: BarSocialLinks;
   websiteUrl?: string;
   /** compact = icons only, for the live video footer */
   compact?: boolean;
   className?: string;
-}> = ({ barName, socialLinks, websiteUrl, compact = false, className = '' }) => {
+}> = ({ barId, barName, socialLinks, websiteUrl, compact = false, className = '' }) => {
   const links = displayableSocialLinks(socialLinks);
   const website = displayableWebsite(websiteUrl);
   const items: { key: string; label: string; href: string; Icon: React.FC<{ className?: string }> }[] = [];
@@ -68,6 +71,7 @@ export const SocialLinksRow: React.FC<{
           aria-label={`${barName} on ${label} (opens in a new tab)`}
           title={`${label} (opens in a new tab)`}
           data-testid={`social-link-${key}`}
+          onClick={() => barId && trackEvent(barId, key === 'website' ? 'website' : 'social')}
           className={`inline-flex items-center justify-center rounded-full bg-neutral-950 border border-neutral-800 text-tan hover:text-ink hover:bg-copper hover:border-copper transition cursor-pointer ${
             compact ? 'w-8 h-8' : 'w-10 h-10'
           }`}

@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { getDatabase } from 'firebase/database';
 import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 
 // Firebase web config for the Bar Tap project.
@@ -31,6 +32,12 @@ export const storage = getStorage(app);
 // Give up quickly when Storage isn't enabled; the app then saves a compressed photo instead.
 storage.maxUploadRetryTime = 10_000;
 storage.maxOperationRetryTime = 10_000;
+
+// Realtime Database: used only for the live "watching" count and venue analytics.
+// This is the address Firebase gives a database made in "United States (us-central1)".
+// If your database shows a different address at the top of its Data tab, paste that here.
+export const DATABASE_URL = 'https://gen-lang-client-0654676948-default-rtdb.firebaseio.com';
+export const rtdb = getDatabase(app, DATABASE_URL);
 
 // Analytics only runs in browsers that support it (not in some iframes / private modes).
 export let analytics: Analytics | null = null;

@@ -41,6 +41,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '../firebase.ts';
+import { trackEvent } from './analyticsService.ts';
 
 /** Slow mode gap. Keep in sync with firestore.rules (duration.value(5, 's')). */
 export const SLOW_MODE_SECONDS = 5;
@@ -178,6 +179,7 @@ export async function sendChatMessage(params: {
     { merge: true }
   );
   await batch.commit();
+  trackEvent(params.barId, 'chat'); // venue analytics: a count only, never the message or the sender
 }
 
 /** Your own message, or (owner/admin) anyone's message in that bar. */

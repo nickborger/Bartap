@@ -72,6 +72,8 @@ import {
 } from '../types.ts';
 import { LiveCameraCanvas } from './LiveCameraCanvas.tsx';
 import { CameraSetupPanel } from './CameraSetupPanel.tsx';
+import { VenueAnalytics } from './VenueAnalytics.tsx';
+import { useLiveViewerCount } from '../services/analyticsService.ts';
 import { SocialLinksEditor } from './SocialLinks.tsx';
 import { SOCIAL_LABELS, SocialPlatform, normalizeSocialDrafts, socialDraftsFrom } from '../utils/socialLinks.ts';
 import { ALL_EXCLUSIVE_DEALS } from '../data/exclusiveDeals.ts';
@@ -114,10 +116,14 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
     | 'happy_hour'
     | 'hours_events'
     | 'telemetry'
+    | 'analytics'
     | 'reviews'
     | 'profile_verify'
     | 'account'
   >('overview');
+
+  // Real people watching this venue right now (no fake numbers).
+  const watchingNow = useLiveViewerCount(selectedBar.id);
 
   // Quick Action Modal states
   const [isQuickFlashOpen, setIsQuickFlashOpen] = useState(false);
@@ -927,6 +933,19 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveTab('analytics')}
+            data-testid="owner-tab-analytics"
+            className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+              activeTab === 'analytics'
+                ? 'bg-copper text-ink font-black shadow-sm'
+                : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5" />
+            <span>Viewers & Analytics</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('reviews')}
             className={`px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
               activeTab === 'reviews'
@@ -1157,8 +1176,14 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
                 </div>
               </div>
               <div className="mt-2 pt-2 border-t border-neutral-800/80 flex items-center justify-between text-[11px]">
-                <span className="text-neutral-400">Viewers:</span>
-                <span className="text-neutral-200 font-mono font-bold">384 live</span>
+                <span className="text-neutral-400">Watching now:</span>
+                <button
+                  onClick={() => setActiveTab('analytics')}
+                  className="text-neutral-200 font-mono font-bold hover:text-tan cursor-pointer"
+                  data-testid="owner-watching-now"
+                >
+                  {watchingNow ?? 0}
+                </button>
               </div>
             </div>
           </div>
@@ -1978,6 +2003,15 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* =========================================================================
+            TAB: VIEWERS & ANALYTICS (real, anonymous counts)
+            ========================================================================= */}
+        {activeTab === 'analytics' && (
+          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-5">
+            <VenueAnalytics barId={selectedBar.id} barName={selectedBar.name} audience="owner" />
           </div>
         )}
 

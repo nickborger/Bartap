@@ -152,6 +152,15 @@ const PrivacyPolicy: React.FC = () => (
       </P>
 
       <P>
+        <B>Venue numbers.</B> To show how many people are watching a bar's live video, and to give bar owners simple
+        totals, Bar Tap counts things like how long a live video was watched, how many people watched at once, and
+        how many times a bar's page, directions, website, phone number, social links or chat were used. These are
+        stored as anonymous counts and times, with no name, email or account attached, and bar owners only ever see
+        the totals. While you are watching, your account ID is held for a moment so that only you can change your
+        own entry, and it is deleted as soon as you stop.
+      </P>
+
+      <P>
         <B>What we do not collect:</B> payment details (Bar Tap is free), your contacts, your microphone, or your
         camera. Bar Tap never turns on your device's camera or microphone.
       </P>
@@ -210,9 +219,9 @@ const PrivacyPolicy: React.FC = () => (
       </P>
       <List>
         <li>
-          <B>Google Firebase</B> (Authentication, Cloud Firestore database, Cloud Storage and Google Analytics for
-          Firebase) stores accounts, reviews, live chat messages, saved bars, owner information and bar photos, and
-          runs sign-in.{' '}
+          <B>Google Firebase</B> (Authentication, Cloud Firestore database, Realtime Database, Cloud Storage and Google
+          Analytics for Firebase) stores accounts, reviews, live chat messages, saved bars, owner information, bar
+          photos and anonymous venue counts, and runs sign-in.{' '}
           <A href="https://firebase.google.com/support/privacy">Firebase privacy information</A>,{' '}
           <A href="https://policies.google.com/privacy">Google Privacy Policy</A>.
         </li>

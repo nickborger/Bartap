@@ -35,6 +35,8 @@ import {
 import { resolveBarImage } from '../data/bundledImages.ts';
 import { AdminBarForm } from './AdminBarForm.tsx';
 import { AdminChatReports } from './AdminChatReports.tsx';
+import { VenueAnalytics } from './VenueAnalytics.tsx';
+import { syncBarOwners } from '../services/analyticsService.ts';
 import { ChatReport, subscribeToChatReports } from '../services/chatService.ts';
 import { Field, Section, dangerBtn, errorMessage, inputCls, primaryBtn, secondaryBtn } from './AdminUi.tsx';
 
@@ -48,7 +50,7 @@ interface AdminPanelProps {
 }
 
 type View = { kind: 'list' } | { kind: 'add' } | { kind: 'edit'; barId: string } | { kind: 'cameras'; barId: string };
-type Tab = 'bars' | 'owners' | 'reports';
+type Tab = 'bars' | 'owners' | 'reports' | 'analytics';
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ adminUid, bars, usingBuiltIn, legacyOverrides }) => {
   const [tab, setTab] = useState<Tab>('bars');
@@ -77,8 +79,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ adminUid, bars, usingBui
   const [requests, setRequests] = useState<OwnerRequest[]>([]);
   const [ownersError, setOwnersError] = useState<string | null>(null);
 
+  // Analytics: which bar the admin is looking at, and whether the owner list reached the Realtime Database.
+  const [analyticsBarId, setAnalyticsBarId] = useState<string>('');
+  const [ownersLoaded, setOwnersLoaded] = useState(false);
+  const [ownerSync, setOwnerSync] = useState<'idle' | 'ok' | 'failed'>('idle');
+
+  // Keeps barOwners/{barId}/{uid} in the Realtime Database in step with the linked owners in Firestore,
+  // so owners can read their own bar's analytics. Runs whenever the owner list changes.
   useEffect(() => {
-    const u1 = subscribeToLinkedOwners(setOwners, (e) => setOwnersError(errorMessage(e)));
+    if (!ownersLoaded) return;
+    syncBarOwners(owners).then(
+      () => setOwnerSync('ok'),
+      () => setOwnerSync('failed')
+    );
+  }, [owners, ownersLoaded]);
+
+  useEffect(() => {
+    const u1 = subscribeToLinkedOwners(
+      (list) => {
+        setOwners(list);
+        setOwnersLoaded(true);
+      },
+      (e) => setOwnersError(errorMessage(e))
+    );
     const u2 = subscribeToOwnerRequests(setRequests, (e) => setOwnersError(errorMessage(e)));
     return () => {
       u1();
@@ -198,10 +221,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ adminUid, bars, usingBui
           </div>
         </div>
         <div className="flex bg-neutral-900 border border-neutral-800 rounded-xl p-1">
-          {(['bars', 'owners', 'reports'] as Tab[]).map((t) => (
+          {(['bars', 'owners', 'reports', 'analytics'] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
+              data-testid={`admin-tab-${t}`}
               className={`px-4 py-1.5 rounded-lg text-sm font-bold transition cursor-pointer ${
                 tab === t ? 'bg-copper text-ink' : 'text-neutral-300 hover:text-neutral-100'
               }`}
@@ -210,7 +234,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ adminUid, bars, usingBui
                 ? `Bars (${usingBuiltIn ? 0 : bars.length})`
                 : t === 'owners'
                   ? `Owners${requests.length ? ` · ${requests.length} new` : ''}`
-                  : `Chat reports${reports.length ? ` · ${reports.length}` : ''}`}
+                  : t === 'reports'
+                    ? `Chat reports${reports.length ? ` · ${reports.length}` : ''}`
+                    : 'Analytics'}
             </button>
           ))}
         </div>
@@ -326,6 +352,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ adminUid, bars, usingBui
             </div>
           )}
         </>
+      ) : tab === 'analytics' ? (
+        <AdminAnalyticsTab
+          adminUid={adminUid}
+          bars={usingBuiltIn ? [] : bars}
+          barId={analyticsBarId}
+          onPickBar={setAnalyticsBarId}
+          ownerSync={ownerSync}
+        />
       ) : tab === 'reports' ? (
         <AdminChatReports
           adminUid={adminUid}
@@ -553,6 +587,55 @@ const OwnersTab: React.FC<OwnersTabProps> = ({ adminUid, bars, owners, requests,
       <p className="text-[11px] text-neutral-500 flex items-center gap-1">
         <Search className="w-3 h-3" /> Making someone an admin is only possible in the Firebase console (see FIREBASE_SETUP.md).
       </p>
+    </div>
+  );
+};
+
+/** Admin view of any venue's viewer + engagement numbers. */
+const AdminAnalyticsTab: React.FC<{
+  adminUid: string;
+  bars: StoredBar[];
+  barId: string;
+  onPickBar: (id: string) => void;
+  ownerSync: 'idle' | 'ok' | 'failed';
+}> = ({ adminUid, bars, barId, onPickBar, ownerSync }) => {
+  const current = bars.find((b) => b.id === barId) || bars[0];
+  if (!current) {
+    return (
+      <Section title="Analytics">
+        <p className="text-sm text-neutral-400">Add a bar first. Its numbers show up here once people start opening it.</p>
+      </Section>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      {bars.length > 1 && (
+        <Section title="Pick a bar">
+          <select
+            value={current.id}
+            onChange={(e) => onPickBar(e.target.value)}
+            className={inputCls}
+            data-testid="admin-analytics-bar"
+          >
+            {bars.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+                {b.isActive === false ? ' (hidden)' : ''}
+              </option>
+            ))}
+          </select>
+        </Section>
+      )}
+      <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-5">
+        <VenueAnalytics barId={current.id} barName={current.name} audience="admin" adminUid={adminUid} />
+      </div>
+      {ownerSync === 'failed' && (
+        <div className="p-3 rounded-xl bg-neutral-900 border border-copper/60 text-xs text-neutral-200" role="status" data-testid="owner-sync-failed">
+          Bar owners can&apos;t see their analytics yet: the owner list couldn&apos;t be copied to the Realtime Database. Make sure{' '}
+          <code className="text-tan">admins</code> → <code className="text-tan break-all">{adminUid}</code> → <code className="text-tan">true</code> is in the
+          Realtime Database and its rules are published, then reload.
+        </div>
+      )}
     </div>
   );
 };

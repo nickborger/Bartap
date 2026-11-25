@@ -128,6 +128,7 @@ export const LiveFeedViewerModal: React.FC<LiveFeedViewerModalProps> = ({
                 isFullscreen={isFullscreen}
                 onFullscreenToggle={() => setIsFullscreen(!isFullscreen)}
                 onOpenRelayModal={onOpenRelayModal}
+                countAsViewer
               />
               {/* Phone: chat floats over the bottom of the video (Twitch-style) */}
               <div className="lg:hidden">
@@ -192,7 +193,7 @@ export const LiveFeedViewerModal: React.FC<LiveFeedViewerModalProps> = ({
 
               <div className="flex items-center gap-3 flex-wrap">
                 {/* Social links: small and last, below the video, cameras and chat box */}
-                <SocialLinksRow barName={bar.name} socialLinks={bar.socialLinks} compact />
+                <SocialLinksRow barId={bar.id} barName={bar.name} socialLinks={bar.socialLinks} compact />
                 <button
                   onClick={onOpenProfile}
                   className="text-neutral-200 hover:text-white hover:underline font-semibold cursor-pointer"

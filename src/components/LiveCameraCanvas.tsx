@@ -3,6 +3,7 @@ import { Eye, Maximize2, Minimize2, Radio, Server, VideoOff, VolumeX } from 'luc
 import { CameraAngle } from '../types.ts';
 import { relayPath, useRelayStatus } from '../services/relayService.ts';
 import { RelayVideo, RelayVideoState } from './RelayVideo.tsx';
+import { PUBLIC_VIEWER_THRESHOLD, useAnalyticsAccess, useLiveViewerCount, useWatchPresence, viewerCountLabel } from '../services/analyticsService.ts';
 
 interface LiveCameraCanvasProps {
   /** Needed to find the camera's stream on the relay. */
@@ -14,6 +15,8 @@ interface LiveCameraCanvasProps {
   onFullscreenToggle?: () => void;
   isFullscreen?: boolean;
   onOpenRelayModal?: () => void;
+  /** Count this player as someone watching the bar (patron screens only, not owner previews). */
+  countAsViewer?: boolean;
 }
 
 /**
@@ -30,6 +33,7 @@ export const LiveCameraCanvas: React.FC<LiveCameraCanvasProps> = ({
   onFullscreenToggle,
   isFullscreen = false,
   onOpenRelayModal,
+  countAsViewer = false,
 }) => {
   const status = useRelayStatus(barId);
   const [videoState, setVideoState] = useState<RelayVideoState>('connecting');
@@ -37,7 +41,13 @@ export const LiveCameraCanvas: React.FC<LiveCameraCanvasProps> = ({
   const turnedOff = camera?.status === 'STANDBY';
   const relayLive = !!camera && !turnedOff && !!status.cameras[camera.id]?.live;
   const showVideo = relayLive && videoState !== 'failed';
-  const viewers = camera ? status.cameras[camera.id]?.viewers : undefined;
+  // Real people watching this bar right now (Realtime Database presence). Nothing is shown while
+  // the feed is offline. The public sees the number only from PUBLIC_VIEWER_THRESHOLD up;
+  // the bar's owner and the admin always see the exact number.
+  useWatchPresence(barId, countAsViewer && showVideo);
+  const liveCount = useLiveViewerCount(barId, showVideo);
+  const access = useAnalyticsAccess(barId, showVideo);
+  const viewerLabel = showVideo ? viewerCountLabel(liveCount, access.canSee) : null;
 
   let offlineTitle = 'Camera offline';
   let offlineText = 'This camera isn’t streaming right now. Check back soon.';
@@ -110,9 +120,13 @@ export const LiveCameraCanvas: React.FC<LiveCameraCanvasProps> = ({
             </span>
           )}
         </div>
-        {showVideo && typeof viewers === 'number' && viewers > 0 && (
-          <span className="flex items-center gap-1 text-[11px] text-neutral-200 font-mono drop-shadow">
-            <Eye className="w-3.5 h-3.5" /> {viewers}
+        {viewerLabel && (
+          <span
+            className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-black/60 border border-neutral-800 text-[11px] text-neutral-100 font-bold drop-shadow shrink-0"
+            data-testid="viewer-count"
+            title={access.canSee ? `Exact count for you. Viewers see it from ${PUBLIC_VIEWER_THRESHOLD} up.` : 'People watching right now'}
+          >
+            <Eye className="w-3.5 h-3.5 text-tan" /> {viewerLabel}
           </span>
         )}
       </div>

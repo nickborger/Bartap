@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Camera,
   Crown,
@@ -26,6 +26,7 @@ import { DrinkSpecialsSection } from './DrinkSpecialsSection.tsx';
 import { RatingModal } from './RatingModal.tsx';
 import { SocialLinksRow } from './SocialLinks.tsx';
 import { ALL_EXCLUSIVE_DEALS } from '../data/exclusiveDeals.ts';
+import { directionsUrl, telHref, trackEvent } from '../services/analyticsService.ts';
 
 interface BarProfileModalProps {
   bar: BarLocation;
@@ -66,7 +67,14 @@ export const BarProfileModal: React.FC<BarProfileModalProps> = ({
 
   const exclusiveDeal = ALL_EXCLUSIVE_DEALS.find((d) => d.barId === bar.id);
 
+  // Venue analytics: one page view each time someone opens this bar's page (no names kept).
+  useEffect(() => {
+    if (isOpen) trackEvent(bar.id, 'pageViews');
+  }, [isOpen, bar.id]);
+
   if (!isOpen) return null;
+  const mapsUrl = directionsUrl(bar);
+  const phoneHref = telHref(bar.phone);
 
   const handleOpenRatingModal = () => {
     if (!canWriteReview) {
@@ -122,6 +130,7 @@ export const BarProfileModal: React.FC<BarProfileModalProps> = ({
               isFullscreen={isFullscreenStream}
               onFullscreenToggle={() => setIsFullscreenStream(!isFullscreenStream)}
               onOpenRelayModal={onOpenRelayModal}
+              countAsViewer
             />
 
             {/* Camera Angle Switcher Bar */}
@@ -217,11 +226,28 @@ export const BarProfileModal: React.FC<BarProfileModalProps> = ({
                   <span>{isSaved ? 'Saved to My Bars' : 'Save Bar'}</span>
                 </button>
 
+                {/* Directions (counted for the bar's analytics) */}
+                {mapsUrl && (
+                  <a
+                    href={mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackEvent(bar.id, 'directions')}
+                    data-testid="directions-button"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-copper hover:bg-copper-dark text-ink border border-copper text-sm font-bold transition shadow-sm min-h-[44px] cursor-pointer"
+                    title={`Directions to ${bar.name}`}
+                  >
+                    <Navigation className="w-4 h-4" />
+                    <span>Directions</span>
+                  </a>
+                )}
+
                 {/* Direct Link to Bar's Website */}
                 <a
                   href={bar.websiteUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => trackEvent(bar.id, 'website')}
                   className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-100 hover:text-white border border-neutral-700/80 text-sm font-semibold transition shadow-sm min-h-[44px] cursor-pointer"
                   title={`Open official website: ${bar.websiteUrl}`}
                 >
@@ -469,11 +495,28 @@ export const BarProfileModal: React.FC<BarProfileModalProps> = ({
                         <div className="text-neutral-400">
                           {bar.city}, {bar.state} {bar.zip} ({bar.neighborhood})
                         </div>
+                        {mapsUrl && (
+                          <a
+                            href={mapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => trackEvent(bar.id, 'directions')}
+                            className="inline-flex items-center gap-1 mt-1 text-xs font-bold text-tan hover:text-copper underline underline-offset-2"
+                          >
+                            <Navigation className="w-3.5 h-3.5" /> Get directions
+                          </a>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2.5 text-sm text-neutral-200 pt-1">
                       <Phone className="w-4 h-4 text-neutral-300 shrink-0" />
-                      <span>{bar.phone}</span>
+                      {phoneHref ? (
+                        <a href={phoneHref} onClick={() => trackEvent(bar.id, 'calls')} className="hover:text-tan underline-offset-2 hover:underline">
+                          {bar.phone}
+                        </a>
+                      ) : (
+                        <span>{bar.phone}</span>
+                      )}
                     </div>
                   </div>
 
@@ -521,7 +564,7 @@ export const BarProfileModal: React.FC<BarProfileModalProps> = ({
 
             {/* Social media links: kept low on the page (below the live feed and
                 specials) because every tap sends people off Bar Tap. */}
-            <SocialLinksRow barName={bar.name} socialLinks={bar.socialLinks} websiteUrl={bar.websiteUrl} />
+            <SocialLinksRow barId={bar.id} barName={bar.name} socialLinks={bar.socialLinks} websiteUrl={bar.websiteUrl} />
           </div>
           </div>
         </div>
