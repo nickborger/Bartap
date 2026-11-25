@@ -72,6 +72,8 @@ import {
 } from '../types.ts';
 import { LiveCameraCanvas } from './LiveCameraCanvas.tsx';
 import { CameraSetupPanel } from './CameraSetupPanel.tsx';
+import { SocialLinksEditor } from './SocialLinks.tsx';
+import { SOCIAL_LABELS, SocialPlatform, normalizeSocialDrafts, socialDraftsFrom } from '../utils/socialLinks.ts';
 import { ALL_EXCLUSIVE_DEALS } from '../data/exclusiveDeals.ts';
 
 interface BusinessOwnerPlatformProps {
@@ -133,6 +135,8 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
   );
   const [websiteUrl, setWebsiteUrl] = useState(selectedBar.websiteUrl);
   const [phone, setPhone] = useState(selectedBar.phone);
+  const [socialDrafts, setSocialDrafts] = useState(() => socialDraftsFrom(selectedBar.socialLinks));
+  const [socialErrors, setSocialErrors] = useState<Partial<Record<SocialPlatform, string>>>({});
   const [tagline, setTagline] = useState(selectedBar.tagline);
   const [category, setCategory] = useState(selectedBar.category);
   const [cameras, setCameras] = useState<CameraAngle[]>(selectedBar.cameras);
@@ -361,6 +365,8 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
       setEstimatedWaitMinutes(target.estimatedWaitMinutes);
       setWebsiteUrl(target.websiteUrl);
       setPhone(target.phone);
+      setSocialDrafts(socialDraftsFrom(target.socialLinks));
+      setSocialErrors({});
       setTagline(target.tagline);
       setCategory(target.category);
       setCameras(target.cameras);
@@ -397,6 +403,15 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
 
   // Publish / Save All Changes
   const handlePublishAll = (customActionDetails?: string) => {
+    // Social links: save the tidy full links. If a box isn't a real link or
+    // handle, keep the bar's saved links and say which box to fix.
+    const social = normalizeSocialDrafts(socialDrafts);
+    setSocialErrors(social.errors);
+    const badSocial = (Object.keys(social.errors) as SocialPlatform[]).map((p) => SOCIAL_LABELS[p]);
+    const socialLinks = badSocial.length ? selectedBar.socialLinks : social.links;
+    if (!badSocial.length) {
+      setSocialDrafts(socialDraftsFrom(social.links));
+    }
     const updated: BarLocation = {
       ...selectedBar,
       hoursToday,
@@ -406,6 +421,7 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
       estimatedWaitMinutes,
       websiteUrl,
       phone,
+      socialLinks,
       tagline,
       category,
       cameras,
@@ -429,8 +445,12 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
 
     onUpdateBar(updated);
     setAuditLog(updated.auditLog || auditLog);
-    setSaveToast('All changes successfully published to the public Bar Tap network!');
-    setTimeout(() => setSaveToast(null), 3500);
+    setSaveToast(
+      badSocial.length
+        ? `Published, except your social links: fix the ${badSocial.join(' and ')} link in Venue Profile & Verification.`
+        : 'All changes successfully published to the public Bar Tap network!'
+    );
+    setTimeout(() => setSaveToast(null), badSocial.length ? 6000 : 3500);
   };
 
   // Camera Power Toggles
@@ -2224,6 +2244,23 @@ export const BusinessOwnerPlatform: React.FC<BusinessOwnerPlatformProps> = ({
                     onChange={(e) => setCategory(e.target.value)}
                     className="mt-1 w-full px-3.5 py-2.5 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-copper"
                     placeholder="e.g. Rooftop Lounge, Craft Brewery, Mega Club"
+                  />
+                </div>
+
+                <div className="md:col-span-2 space-y-2" data-testid="owner-social-links">
+                  <div>
+                    <div className="text-xs font-semibold text-neutral-300">Social Media Links</div>
+                    <p className="text-[11px] text-neutral-500 mt-0.5">
+                      Paste a link or type your handle (like @thehub). It turns into the full link. They show as small icons near the bottom of your Bar Tap page. Tap Publish Live to save.
+                    </p>
+                  </div>
+                  <SocialLinksEditor
+                    drafts={socialDrafts}
+                    onChange={setSocialDrafts}
+                    errors={socialErrors}
+                    onErrorsChange={setSocialErrors}
+                    inputClassName="mt-1 w-full px-3.5 py-2.5 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-white focus:outline-none focus:border-copper font-mono"
+                    labelClassName="text-xs font-semibold text-neutral-300"
                   />
                 </div>
 

@@ -14,6 +14,7 @@ import {
 import { BarLocation, CameraAngle } from '../types.ts';
 import { LiveCameraCanvas } from './LiveCameraCanvas.tsx';
 import { TapInButton } from './TapInButton.tsx';
+import { SocialLinksRow } from './SocialLinks.tsx';
 import { ChatActionSheet, ChatComposer, ChatOverlay, ChatPanel, ChatViewer, useLiveChat } from './LiveChat.tsx';
 import type { ChatMessage } from '../services/chatService.ts';
 
@@ -189,12 +190,16 @@ export const LiveFeedViewerModal: React.FC<LiveFeedViewerModalProps> = ({
                 </div>
               </div>
 
-              <button
-                onClick={onOpenProfile}
-                className="text-neutral-200 hover:text-white hover:underline font-semibold cursor-pointer"
-              >
-                View Full Profile & Drink Specials →
-              </button>
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* Social links: small and last, below the video, cameras and chat box */}
+                <SocialLinksRow barName={bar.name} socialLinks={bar.socialLinks} compact />
+                <button
+                  onClick={onOpenProfile}
+                  className="text-neutral-200 hover:text-white hover:underline font-semibold cursor-pointer"
+                >
+                  View Full Profile & Drink Specials →
+                </button>
+              </div>
             </div>
           </div>
 

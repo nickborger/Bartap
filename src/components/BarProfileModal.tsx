@@ -24,6 +24,7 @@ import { LiveCameraCanvas } from './LiveCameraCanvas.tsx';
 import { TapInButton } from './TapInButton.tsx';
 import { DrinkSpecialsSection } from './DrinkSpecialsSection.tsx';
 import { RatingModal } from './RatingModal.tsx';
+import { SocialLinksRow } from './SocialLinks.tsx';
 import { ALL_EXCLUSIVE_DEALS } from '../data/exclusiveDeals.ts';
 
 interface BarProfileModalProps {
@@ -345,7 +346,7 @@ export const BarProfileModal: React.FC<BarProfileModalProps> = ({
                       {bar.currentDJsBand || 'Resident DJ & Curated Sound'}
                     </div>
                     <div className="text-xs text-neutral-400 mt-0.5">
-                      Tonight in Tallahassee · Stream audio enabled
+                      Tonight in Tallahassee · Video only, no sound
                     </div>
                   </div>
 
@@ -517,6 +518,10 @@ export const BarProfileModal: React.FC<BarProfileModalProps> = ({
                 </div>
               </div>
             )}
+
+            {/* Social media links: kept low on the page (below the live feed and
+                specials) because every tap sends people off Bar Tap. */}
+            <SocialLinksRow barName={bar.name} socialLinks={bar.socialLinks} websiteUrl={bar.websiteUrl} />
           </div>
           </div>
         </div>

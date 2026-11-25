@@ -12,7 +12,9 @@ import {
 } from '../services/adminService.ts';
 import { SUPPORTED_CITIES } from '../utils/geolocation.ts';
 import { isBundledImage, resolveBarImage } from '../data/bundledImages.ts';
-import { Field, Section, dangerBtn, errorMessage, inputCls, primaryBtn, secondaryBtn } from './AdminUi.tsx';
+import { Field, Section, dangerBtn, errorMessage, inputCls, labelCls, primaryBtn, secondaryBtn } from './AdminUi.tsx';
+import { SocialLinksEditor } from './SocialLinks.tsx';
+import { SOCIAL_LABELS, SocialPlatform, normalizeSocialDrafts, socialDraftsFrom } from '../utils/socialLinks.ts';
 
 const CATEGORIES = [
   'College Pub',
@@ -152,6 +154,8 @@ export const AdminBarForm: React.FC<AdminBarFormProps> = ({
   });
   const [phone, setPhone] = useState(existing?.phone || '');
   const [websiteUrl, setWebsiteUrl] = useState(existing?.websiteUrl || '');
+  const [socialDrafts, setSocialDrafts] = useState(() => socialDraftsFrom(existing?.socialLinks));
+  const [socialErrors, setSocialErrors] = useState<Partial<Record<SocialPlatform, string>>>({});
   const [cover, setCover] = useState(existing?.coverCharge || '');
   const [priceLevel, setPriceLevel] = useState(existing?.priceLevel || '');
   const [featuresText, setFeaturesText] = useState((existing?.features || []).join('\n'));
@@ -239,6 +243,10 @@ export const AdminBarForm: React.FC<AdminBarFormProps> = ({
     if ((latNum == null) !== (lngNum == null)) return setError('Enter both latitude and longitude, or neither.');
     if (latNum != null && (Number.isNaN(latNum) || latNum < -90 || latNum > 90)) return setError('Latitude must be a number between -90 and 90.');
     if (lngNum != null && (Number.isNaN(lngNum) || lngNum < -180 || lngNum > 180)) return setError('Longitude must be a number between -180 and 180.');
+    const social = normalizeSocialDrafts(socialDrafts);
+    setSocialErrors(social.errors);
+    const badSocial = (Object.keys(social.errors) as SocialPlatform[]).map((p) => SOCIAL_LABELS[p]);
+    if (badSocial.length) return setError(`Fix the ${badSocial.join(' and ')} link under Social media.`);
 
     const input: BarListingInput = {
       name,
@@ -256,6 +264,7 @@ export const AdminBarForm: React.FC<AdminBarFormProps> = ({
       weeklyHours: days.map(formatDay),
       phone,
       websiteUrl,
+      socialLinks: social.links,
       coverCharge: cover,
       priceLevel,
       features: featuresText.split('\n'),
@@ -433,6 +442,20 @@ export const AdminBarForm: React.FC<AdminBarFormProps> = ({
             </select>
           </Field>
         </div>
+      </Section>
+
+      <Section
+        title="Social media"
+        hint="Optional. Paste a link or type the handle (like @thehub); it turns into the full link. These show as small icons low on the bar's page."
+      >
+        <SocialLinksEditor
+          drafts={socialDrafts}
+          onChange={setSocialDrafts}
+          errors={socialErrors}
+          onErrorsChange={setSocialErrors}
+          inputClassName={inputCls}
+          labelClassName={labelCls}
+        />
       </Section>
 
       <Section title="Features" hint="One per line, e.g. “Rooftop patio” or “Dogs welcome”.">
